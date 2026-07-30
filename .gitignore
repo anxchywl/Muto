@@ -1,0 +1,29 @@
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.idea/
+.vscode/
+
+# library packages resolve from the application lockfile
+muto_ui/pubspec.lock
+muto_feature/pubspec.lock
+app_ui/pubspec.lock
+
+# generated localizations
+muto_feature/lib/src/l10n/generated/
+
+# secrets and signing material
+.env
+.env.*
+*.jks
+*.keystore
+key.properties
+google-services.json
+GoogleService-Info.plist
+
+# macOS
+.DS_Store
