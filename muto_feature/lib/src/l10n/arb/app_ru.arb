@@ -1,0 +1,16 @@
+{
+  "@@locale": "ru",
+
+  "appTitle": "Muto",
+  "sampleDataIndicator": "Тестовые данные",
+  "sampleDataExplanation": "В этой сборке нет сервера. Всё, что вы видите, — локальные тестовые данные.",
+  "navBrowse": "Каталог",
+  "navFavorites": "Избранное",
+  "navMyListings": "Мои объявления",
+  "listingCount": "{count, plural, =0{Нет объявлений} one{{count} объявление} few{{count} объявления} many{{count} объявлений} other{{count} объявления}}",
+  "actionRetry": "Повторить",
+  "actionCancel": "Отмена",
+  "actionClose": "Закрыть",
+  "errorGeneric": "Что-то пошло не так. Попробуйте ещё раз.",
+  "errorOffline": "Нет соединения. Проверьте сеть и попробуйте снова."
+}

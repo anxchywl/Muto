@@ -1,5 +1,7 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:muto_feature/muto_feature.dart';
 
 /// Standalone host. It owns the application shell — theme, locale, and
 /// lifecycle — and mounts the marketplace feature inside it.
@@ -9,10 +11,18 @@ class HostApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      onGenerateTitle: (context) => MutoLocalizations.of(context).appTitle,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       debugShowCheckedModeBanner: false,
+      supportedLocales: MutoLocales.supported,
+      localizationsDelegates: const <LocalizationsDelegate<Object>>[
+        MutoLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       home: const Scaffold(body: SizedBox.shrink()),
     );
   }

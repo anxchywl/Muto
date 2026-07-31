@@ -1,0 +1,68 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Muto",
+  "@appTitle": {
+    "description": "Name of the marketplace, shown in the app bar"
+  },
+
+  "sampleDataIndicator": "Sample data",
+  "@sampleDataIndicator": {
+    "description": "Persistent label shown while the app runs on mock repositories"
+  },
+
+  "sampleDataExplanation": "This build has no server. Everything you see is local sample data.",
+  "@sampleDataExplanation": {
+    "description": "Explanation shown when the sample data indicator is activated"
+  },
+
+  "navBrowse": "Browse",
+  "@navBrowse": {
+    "description": "Bottom navigation destination for the listing feed"
+  },
+
+  "navFavorites": "Favorites",
+  "@navFavorites": {
+    "description": "Bottom navigation destination for saved listings"
+  },
+
+  "navMyListings": "My listings",
+  "@navMyListings": {
+    "description": "Bottom navigation destination for listings the user owns"
+  },
+
+  "listingCount": "{count, plural, =0{No listings} one{{count} listing} other{{count} listings}}",
+  "@listingCount": {
+    "description": "Number of listings in a result set",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "actionRetry": "Retry",
+  "@actionRetry": {
+    "description": "Retries a failed load"
+  },
+
+  "actionCancel": "Cancel",
+  "@actionCancel": {
+    "description": "Dismisses a dialog or sheet without acting"
+  },
+
+  "actionClose": "Close",
+  "@actionClose": {
+    "description": "Closes a sheet or dialog"
+  },
+
+  "errorGeneric": "Something went wrong. Please try again.",
+  "@errorGeneric": {
+    "description": "Fallback error message when no specific cause is known"
+  },
+
+  "errorOffline": "No connection. Check your network and try again.",
+  "@errorOffline": {
+    "description": "Shown when a request fails because the device is offline"
+  }
+}

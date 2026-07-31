@@ -1,0 +1,16 @@
+{
+  "@@locale": "kk",
+
+  "appTitle": "Muto",
+  "sampleDataIndicator": "Сынақ деректері",
+  "sampleDataExplanation": "Бұл нұсқада сервер жоқ. Көрсетілгеннің бәрі — жергілікті сынақ деректері.",
+  "navBrowse": "Каталог",
+  "navFavorites": "Таңдаулылар",
+  "navMyListings": "Менің хабарландыруларым",
+  "listingCount": "{count, plural, =0{Хабарландыру жоқ} other{{count} хабарландыру}}",
+  "actionRetry": "Қайталау",
+  "actionCancel": "Бас тарту",
+  "actionClose": "Жабу",
+  "errorGeneric": "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
+  "errorOffline": "Байланыс жоқ. Желіні тексеріп, қайталап көріңіз."
+}
