@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muto_feature/muto_feature.dart';
+import 'package:muto_feature/src/data/local/preferences_draft_store.dart';
 import 'package:muto_feature/src/data/mock/mock_environment.dart';
 import 'package:muto_feature/src/data/mock/mock_favorites_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_image_repository.dart';
@@ -202,6 +203,7 @@ void main() {
           latency: const MockLatency.none(),
         ),
         imageLocator: MockImageLocator(store: store, bundled: const {}),
+        drafts: const PreferencesDraftStore(),
       ),
     );
 

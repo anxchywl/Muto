@@ -1,4 +1,5 @@
 import '../../application/muto_scope.dart';
+import '../local/preferences_draft_store.dart';
 import 'mock_environment.dart';
 import 'mock_favorites_repository.dart';
 import 'mock_image_repository.dart';
@@ -69,5 +70,6 @@ MutoDependencies buildSampleDependencies(
       store: store,
       bundled: kBundledSampleImageIds,
     ),
+    drafts: const PreferencesDraftStore(),
   );
 }

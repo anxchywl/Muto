@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:muto_ui/muto_ui.dart';
 
+import '../../application/muto_scope.dart';
 import '../../config/muto_config.dart';
 import '../../domain/entities/listing.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../browse/browse_screen.dart';
+import '../editor/listing_editor_screen.dart';
 import '../listing/listing_detail_screen.dart';
 
 /// The feature's own navigation surface.
@@ -25,6 +29,16 @@ class _MutoShellState extends State<MutoShell> {
   final GlobalKey<NavigatorState> _navigator = GlobalKey<NavigatorState>();
   int _destination = 0;
 
+  Future<void> _openEditor() async {
+    final saved = await _navigator.currentState?.push<Listing>(
+      MaterialPageRoute<Listing>(builder: (_) => const ListingEditorScreen()),
+    );
+    if (saved == null || !mounted) return;
+    // the feed was marked stale by the write; reload it so the listing the
+    // student just published is actually there when they land back on it
+    unawaited(MutoScope.of(context).browse.refresh());
+  }
+
   void _openListing(Listing listing) {
     _navigator.currentState?.push(
       MaterialPageRoute<void>(
@@ -37,6 +51,7 @@ class _MutoShellState extends State<MutoShell> {
   @override
   Widget build(BuildContext context) {
     final strings = MutoLocalizations.of(context);
+    final session = MutoScope.of(context).session;
 
     return Scaffold(
       body: Column(
@@ -57,6 +72,13 @@ class _MutoShellState extends State<MutoShell> {
           ),
         ],
       ),
+      floatingActionButton: session.canPublish
+          ? FloatingActionButton(
+              onPressed: () => unawaited(_openEditor()),
+              tooltip: strings.editorNewTitle,
+              child: const AppIcon(AppIcons.add, color: AppColors.white),
+            )
+          : null,
       bottomNavigationBar: _BottomBar(
         current: _destination,
         onSelected: (index) => setState(() => _destination = index),

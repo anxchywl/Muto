@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muto_feature/src/application/muto_scope.dart';
+import 'package:muto_feature/src/data/local/preferences_draft_store.dart';
 import 'package:muto_feature/src/data/mock/mock_environment.dart';
 import 'package:muto_feature/src/data/mock/mock_favorites_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_image_repository.dart';
@@ -32,6 +33,7 @@ MutoDependencies _dependencies(SampleData data) {
       latency: const MockLatency.none(),
     ),
     imageLocator: MockImageLocator(store: store, bundled: const {}),
+    drafts: const PreferencesDraftStore(),
   );
 }
 

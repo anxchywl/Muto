@@ -173,5 +173,46 @@
         "type": "int"
       }
     }
-  }
+  },
+  "editorNewTitle": "New listing",
+  "editorEditTitle": "Edit listing",
+  "editorFieldTitle": "Title",
+  "editorFieldDescription": "Description",
+  "editorFieldPrice": "Price",
+  "editorFieldCurrency": "Currency",
+  "editorFieldLookingFor": "What you want in return",
+  "editorFieldPhotos": "Photos",
+  "editorPhotoCount": "{used} of {max}",
+  "@editorPhotoCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "actionAddPhoto": "Add photo",
+  "actionRemovePhoto": "Remove photo",
+  "actionPublish": "Publish",
+  "actionSaveChanges": "Save changes",
+  "actionDiscard": "Discard",
+  "actionKeepEditing": "Keep editing",
+  "discardDraftTitle": "Discard this listing?",
+  "discardDraftMessage": "What you have typed will not be kept.",
+  "issueTitleTooShort": "Give the listing a title of at least 3 characters.",
+  "issueTitleTooLong": "Keep the title under 80 characters.",
+  "issueDescriptionTooLong": "Keep the description under 2000 characters.",
+  "issuePriceMissing": "Add a price, or change this to a swap or giveaway.",
+  "issuePriceOutOfRange": "Enter a price above zero and within a sensible range.",
+  "issueWantedItemsTooLong": "Keep this under 200 characters.",
+  "issueTooManyImages": "You can add up to 6 photos.",
+  "imageIssueUnsupported": "That file is not a JPEG, PNG or WebP image.",
+  "imageIssueTooLarge": "That image is larger than 5 MB.",
+  "imageIssueTooSmall": "That image is too small to be useful.",
+  "imageIssueTooManyPixels": "That image is too large to process.",
+  "editorConflictMessage": "This listing changed since you opened it. Reload it and try again.",
+  "listingPublished": "Listing published",
+  "listingSaved": "Changes saved"
 }

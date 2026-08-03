@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../domain/repositories/draft_store.dart';
 import '../domain/repositories/favorites_repository.dart';
 import '../domain/repositories/image_locator.dart';
 import '../domain/repositories/image_repository.dart';
@@ -19,6 +20,7 @@ final class MutoDependencies {
     required this.favorites,
     required this.images,
     required this.imageLocator,
+    required this.drafts,
   });
 
   final SessionRepository session;
@@ -26,6 +28,7 @@ final class MutoDependencies {
   final FavoritesRepository favorites;
   final ImageRepository images;
   final ImageLocator imageLocator;
+  final DraftStore drafts;
 }
 
 /// Owns the controllers for one mounting of the feature.
