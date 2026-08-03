@@ -3,14 +3,76 @@
 
   "appTitle": "Muto",
   "sampleDataIndicator": "Сынақ деректері",
-  "sampleDataExplanation": "Бұл нұсқада сервер жоқ. Көрсетілгеннің бәрі — жергілікті сынақ деректері.",
+  "sampleDataExplanation": "Бұл нұсқада сервер жоқ. Көрсетілгеннің бәрі — жергілікті сынақ деректері, ешнәрсе құрылғыдан шықпайды.",
+
   "navBrowse": "Каталог",
   "navFavorites": "Таңдаулылар",
   "navMyListings": "Менің хабарландыруларым",
+
   "listingCount": "{count, plural, =0{Хабарландыру жоқ} other{{count} хабарландыру}}",
+
   "actionRetry": "Қайталау",
   "actionCancel": "Бас тарту",
   "actionClose": "Жабу",
+  "actionApply": "Қолдану",
+  "actionReset": "Тазалау",
+
   "errorGeneric": "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
-  "errorOffline": "Байланыс жоқ. Желіні тексеріп, қайталап көріңіз."
+  "errorOffline": "Байланыс жоқ. Желіні тексеріп, қайталап көріңіз.",
+
+  "searchHint": "Хабарландыруларды іздеу",
+
+  "filtersTitle": "Сүзгілер",
+  "filterCategory": "Санат",
+  "filterKind": "Түрі",
+  "filterCondition": "Күйі",
+  "filterSort": "Сұрыптау",
+  "filterAny": "Кез келген",
+
+  "kindSale": "Сатылады",
+  "kindExchange": "Айырбас",
+  "kindGiveaway": "Тегін",
+
+  "conditionNew": "Жаңа",
+  "conditionLikeNew": "Жаңаға жақын",
+  "conditionGood": "Жақсы",
+  "conditionWorn": "Тозған",
+
+  "categoryTextbooks": "Оқулықтар",
+  "categoryElectronics": "Электроника",
+  "categoryFurniture": "Жиһаз",
+  "categoryClothing": "Киім",
+  "categorySports": "Спорт",
+  "categoryDorm": "Жатақхана",
+  "categoryTickets": "Билеттер",
+  "categoryOther": "Басқа",
+
+  "sortNewest": "Алдымен жаңалары",
+  "sortPriceAscending": "Алдымен арзаны",
+  "sortPriceDescending": "Алдымен қымбаты",
+
+  "priceFree": "Тегін",
+  "priceSwap": "Айырбасқа дайын",
+
+  "statusReserved": "Броньдалған",
+  "statusSold": "Сатылды",
+  "statusHidden": "Жасырылған",
+
+  "browseEmptyTitle": "Әзірге бос",
+  "browseEmptyMessage": "Ештеңе табылмады. Сүзгіні алып көріңіз.",
+  "browseErrorTitle": "Хабарландыруларды жүктеу мүмкін болмады",
+
+  "staleDataNotice": "{time} кезіндегі сақталған нәтижелер көрсетілген",
+
+  "listingSemantics": "{title}, {price}",
+  "listingSemanticsWithStatus": "{title}, {price}, {status}",
+  "listingImageSemantics": "Фото: {title}",
+
+  "openFiltersSemantics": "Сүзгілерді ашу",
+  "clearSearchSemantics": "Іздеуді тазалау",
+
+  "sessionExpiredTitle": "Сессия аяқталды",
+  "sessionExpiredMessage": "Жалғастыру үшін Muto-ны қайта ашыңыз.",
+  "sessionFailedTitle": "Muto іске қосылмады",
+  "startingUp": "Іске қосылуда"
 }

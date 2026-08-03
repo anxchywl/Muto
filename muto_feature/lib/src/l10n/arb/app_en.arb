@@ -11,58 +11,119 @@
     "description": "Persistent label shown while the app runs on mock repositories"
   },
 
-  "sampleDataExplanation": "This build has no server. Everything you see is local sample data.",
+  "sampleDataExplanation": "This build has no server. Everything you see is local sample data, and nothing you do here leaves the device.",
   "@sampleDataExplanation": {
-    "description": "Explanation shown when the sample data indicator is activated"
+    "description": "Explanation shown when the sample data indicator is opened"
   },
 
   "navBrowse": "Browse",
-  "@navBrowse": {
-    "description": "Bottom navigation destination for the listing feed"
-  },
-
   "navFavorites": "Favorites",
-  "@navFavorites": {
-    "description": "Bottom navigation destination for saved listings"
-  },
-
   "navMyListings": "My listings",
-  "@navMyListings": {
-    "description": "Bottom navigation destination for listings the user owns"
-  },
 
   "listingCount": "{count, plural, =0{No listings} one{{count} listing} other{{count} listings}}",
   "@listingCount": {
     "description": "Number of listings in a result set",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
+    "placeholders": { "count": { "type": "int" } }
   },
 
   "actionRetry": "Retry",
-  "@actionRetry": {
-    "description": "Retries a failed load"
-  },
-
   "actionCancel": "Cancel",
-  "@actionCancel": {
-    "description": "Dismisses a dialog or sheet without acting"
-  },
-
   "actionClose": "Close",
-  "@actionClose": {
-    "description": "Closes a sheet or dialog"
-  },
+  "actionApply": "Apply",
+  "actionReset": "Reset",
 
   "errorGeneric": "Something went wrong. Please try again.",
-  "@errorGeneric": {
-    "description": "Fallback error message when no specific cause is known"
+  "errorOffline": "No connection. Check your network and try again.",
+
+  "searchHint": "Search listings",
+  "@searchHint": {
+    "description": "Placeholder in the browse search field"
   },
 
-  "errorOffline": "No connection. Check your network and try again.",
-  "@errorOffline": {
-    "description": "Shown when a request fails because the device is offline"
-  }
+  "filtersTitle": "Filters",
+  "filterCategory": "Category",
+  "filterKind": "Type",
+  "filterCondition": "Condition",
+  "filterSort": "Sort",
+  "filterAny": "Any",
+  "@filterAny": {
+    "description": "Option meaning no restriction on a filter"
+  },
+
+  "kindSale": "For sale",
+  "kindExchange": "Swap",
+  "kindGiveaway": "Free",
+
+  "conditionNew": "New",
+  "conditionLikeNew": "Like new",
+  "conditionGood": "Good",
+  "conditionWorn": "Worn",
+
+  "categoryTextbooks": "Textbooks",
+  "categoryElectronics": "Electronics",
+  "categoryFurniture": "Furniture",
+  "categoryClothing": "Clothing",
+  "categorySports": "Sports",
+  "categoryDorm": "Dorm",
+  "categoryTickets": "Tickets",
+  "categoryOther": "Other",
+
+  "sortNewest": "Newest first",
+  "sortPriceAscending": "Price, low to high",
+  "sortPriceDescending": "Price, high to low",
+
+  "priceFree": "Free",
+  "@priceFree": {
+    "description": "Shown in place of a price on a giveaway"
+  },
+  "priceSwap": "Open to swaps",
+  "@priceSwap": {
+    "description": "Shown in place of a price on an exchange listing"
+  },
+
+  "statusReserved": "Reserved",
+  "statusSold": "Sold",
+  "statusHidden": "Hidden",
+
+  "browseEmptyTitle": "Nothing here yet",
+  "browseEmptyMessage": "No listings match what you are looking for. Try removing a filter.",
+  "browseErrorTitle": "Could not load listings",
+
+  "staleDataNotice": "Showing saved results from {time}",
+  "@staleDataNotice": {
+    "description": "Non-blocking notice when a refresh failed and the data on screen is old",
+    "placeholders": { "time": { "type": "String" } }
+  },
+
+  "listingSemantics": "{title}, {price}",
+  "@listingSemantics": {
+    "description": "How a listing row is announced by a screen reader",
+    "placeholders": {
+      "title": { "type": "String" },
+      "price": { "type": "String" }
+    }
+  },
+
+  "listingSemanticsWithStatus": "{title}, {price}, {status}",
+  "@listingSemanticsWithStatus": {
+    "description": "Announcement for a listing that is reserved or sold",
+    "placeholders": {
+      "title": { "type": "String" },
+      "price": { "type": "String" },
+      "status": { "type": "String" }
+    }
+  },
+
+  "listingImageSemantics": "Photo of {title}",
+  "@listingImageSemantics": {
+    "placeholders": { "title": { "type": "String" } }
+  },
+
+  "openFiltersSemantics": "Open filters",
+  "clearSearchSemantics": "Clear search",
+
+  "sessionExpiredTitle": "Session expired",
+  "sessionExpiredMessage": "Open Muto again to continue.",
+  "sessionFailedTitle": "Could not start Muto",
+  "startingUp": "Starting up"
 }
