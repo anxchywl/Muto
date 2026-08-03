@@ -4,6 +4,8 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "muto_feature/lib/src/l10n/generated/**"
+    # vendored and never edited here, so it is not held to this project's lints
+    - "app_ui/**"
   errors:
     invalid_annotation_target: ignore
 
