@@ -1,43 +1,33 @@
 {
   "@@locale": "ru",
-
   "appTitle": "Muto",
   "sampleDataIndicator": "Тестовые данные",
   "sampleDataExplanation": "В этой сборке нет сервера. Всё, что вы видите, — локальные тестовые данные, и ничего с устройства не уходит.",
-
   "navBrowse": "Каталог",
   "navFavorites": "Избранное",
   "navMyListings": "Мои объявления",
-
   "listingCount": "{count, plural, =0{Нет объявлений} one{{count} объявление} few{{count} объявления} many{{count} объявлений} other{{count} объявления}}",
-
   "actionRetry": "Повторить",
   "actionCancel": "Отмена",
   "actionClose": "Закрыть",
   "actionApply": "Применить",
   "actionReset": "Сбросить",
-
   "errorGeneric": "Что-то пошло не так. Попробуйте ещё раз.",
   "errorOffline": "Нет соединения. Проверьте сеть и попробуйте снова.",
-
   "searchHint": "Поиск объявлений",
-
   "filtersTitle": "Фильтры",
   "filterCategory": "Категория",
   "filterKind": "Тип",
   "filterCondition": "Состояние",
   "filterSort": "Сортировка",
   "filterAny": "Любой",
-
   "kindSale": "Продажа",
   "kindExchange": "Обмен",
   "kindGiveaway": "Бесплатно",
-
   "conditionNew": "Новое",
   "conditionLikeNew": "Как новое",
   "conditionGood": "Хорошее",
   "conditionWorn": "Изношенное",
-
   "categoryTextbooks": "Учебники",
   "categoryElectronics": "Электроника",
   "categoryFurniture": "Мебель",
@@ -46,33 +36,49 @@
   "categoryDorm": "Общежитие",
   "categoryTickets": "Билеты",
   "categoryOther": "Другое",
-
   "sortNewest": "Сначала новые",
   "sortPriceAscending": "Сначала дешевле",
   "sortPriceDescending": "Сначала дороже",
-
   "priceFree": "Бесплатно",
   "priceSwap": "Готов к обмену",
-
   "statusReserved": "Забронировано",
   "statusSold": "Продано",
   "statusHidden": "Скрыто",
-
   "browseEmptyTitle": "Пока пусто",
   "browseEmptyMessage": "Ничего не найдено. Попробуйте убрать фильтр.",
   "browseErrorTitle": "Не удалось загрузить объявления",
-
   "staleDataNotice": "Показаны сохранённые результаты от {time}",
-
   "listingSemantics": "{title}, {price}",
   "listingSemanticsWithStatus": "{title}, {price}, {status}",
   "listingImageSemantics": "Фото: {title}",
-
   "openFiltersSemantics": "Открыть фильтры",
   "clearSearchSemantics": "Очистить поиск",
-
   "sessionExpiredTitle": "Сессия истекла",
   "sessionExpiredMessage": "Откройте Muto снова, чтобы продолжить.",
   "sessionFailedTitle": "Не удалось запустить Muto",
-  "startingUp": "Запуск"
+  "startingUp": "Запуск",
+  "detailDescription": "Описание",
+  "detailLookingFor": "Ищу взамен",
+  "detailSeller": "Продавец",
+  "detailCategory": "Категория",
+  "detailCondition": "Состояние",
+  "actionContactSeller": "Связаться с продавцом",
+  "contactUnavailableUnverified": "Подтвердите студенческий аккаунт, чтобы видеть контакты.",
+  "contactSheetTitle": "Связаться: {name}",
+  "contactTelegram": "Telegram",
+  "contactEmail": "Почта",
+  "contactPhone": "Телефон",
+  "actionCopy": "Копировать",
+  "copiedToClipboard": "Скопировано",
+  "leaveAppTitle": "Открыть вне Muto?",
+  "leaveAppMessage": "Откроется {destination} в другом приложении.",
+  "actionOpen": "Открыть",
+  "listingUnavailableTitle": "Объявление недоступно",
+  "listingRemovedMessage": "Продавец снял это объявление.",
+  "listingNotFoundMessage": "Такого объявления нет или оно больше не доступно.",
+  "actionBackToBrowse": "Вернуться в каталог",
+  "noticeSold": "Этот товар продан.",
+  "noticeReserved": "Этот товар забронирован другим человеком.",
+  "listingDetailTitle": "Объявление",
+  "imageCountSemantics": "Изображение {index} из {total}"
 }

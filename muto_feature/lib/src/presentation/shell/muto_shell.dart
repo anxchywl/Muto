@@ -6,6 +6,7 @@ import '../../config/muto_config.dart';
 import '../../domain/entities/listing.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../browse/browse_screen.dart';
+import '../listing/listing_detail_screen.dart';
 
 /// The feature's own navigation surface.
 ///
@@ -25,8 +26,12 @@ class _MutoShellState extends State<MutoShell> {
   int _destination = 0;
 
   void _openListing(Listing listing) {
-    // detail arrives in the next step; the route is already the one place a
-    // listing is opened from
+    _navigator.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            ListingDetailScreen(listingId: listing.id, preloaded: listing),
+      ),
+    );
   }
 
   @override
