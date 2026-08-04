@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# formatting, analysis and tests across every package — the same checks CI runs
+# formatting, analysis, tests and the coverage floor — the same checks CI runs
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -12,13 +12,17 @@ for package in "${PACKAGES[@]}"; do
     cd "$package"
     flutter pub get >/dev/null
     dart format --output=none --set-exit-if-changed lib test
-    flutter analyze --no-pub
-    if compgen -G "test/**/*_test.dart" >/dev/null || compgen -G "test/*_test.dart" >/dev/null; then
-      flutter test --no-pub --reporter=failures-only
+    flutter analyze --no-pub --fatal-infos
+
+    if [ "$package" = "muto_feature" ]; then
+      flutter test --no-pub --coverage --reporter=failures-only
     else
-      echo "no tests yet"
+      flutter test --no-pub --reporter=failures-only
     fi
   )
 done
+
+echo "==> coverage"
+./scripts/coverage_floor.sh muto_feature/coverage/lcov.info 70
 
 echo "==> all packages passed"

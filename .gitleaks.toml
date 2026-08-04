@@ -1,0 +1,14 @@
+title = "Muto secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Paths that cannot hold a real secret"
+paths = [
+  # invented contact details on reserved example domains, kept deliberately so
+  # the app has something to show
+  '''muto_feature/assets/sample/listings\.json''',
+  '''muto_feature/lib/src/l10n/arb/.*\.arb''',
+  '''.*\.png$''',
+]

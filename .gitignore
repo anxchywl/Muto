@@ -13,6 +13,9 @@ muto_ui/pubspec.lock
 muto_feature/pubspec.lock
 app_ui/pubspec.lock
 
+# test output
+coverage/
+
 # generated localizations
 muto_feature/lib/src/l10n/generated/
 

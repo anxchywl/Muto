@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FLUTTER_VERSION: "3.38.5"
+
+jobs:
+  quality:
+    name: Format, analyze and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: |
+          for package in app_ui muto_ui muto_feature muto_app; do
+            (cd "$package" && flutter pub get)
+          done
+
+      - name: Check formatting
+        run: |
+          for package in muto_ui muto_feature muto_app; do
+            (cd "$package" && dart format --output=none --set-exit-if-changed lib test)
+          done
+
+      - name: Analyze
+        run: |
+          for package in muto_ui muto_feature muto_app; do
+            (cd "$package" && flutter analyze --no-pub --fatal-infos)
+          done
+
+      - name: Test
+        run: |
+          (cd muto_ui && flutter test --no-pub)
+          (cd muto_app && flutter test --no-pub)
+          (cd muto_feature && flutter test --no-pub --coverage)
+
+      - name: Enforce coverage floor
+        run: ./scripts/coverage_floor.sh muto_feature/coverage/lcov.info 70
+
+  release-guard:
+    name: Release build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        working-directory: muto_app
+        run: flutter pub get
+
+      # proves a shipped build starts with development access switched off, and
+      # that the guard cannot be turned back on from a define
+      - name: Build release artifact
+        working-directory: muto_app
+        run: flutter build apk --release --no-pub --dart-define=ENABLE_DEV_ACCESS=false
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # full history, so a secret committed earlier is still found
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          version=8.28.0
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+
+      - name: Scan repository history
+        run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose
