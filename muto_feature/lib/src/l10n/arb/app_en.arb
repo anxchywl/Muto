@@ -214,5 +214,22 @@
   "imageIssueTooManyPixels": "That image is too large to process.",
   "editorConflictMessage": "This listing changed since you opened it. Reload it and try again.",
   "listingPublished": "Listing published",
-  "listingSaved": "Changes saved"
+  "listingSaved": "Changes saved",
+  "favoritesEmptyTitle": "Nothing saved yet",
+  "favoritesEmptyMessage": "Tap the heart on a listing to keep it here.",
+  "myListingsEmptyTitle": "You have not listed anything",
+  "myListingsEmptyMessage": "Anything you publish shows up here.",
+  "actionSaveListing": "Save listing",
+  "actionUnsaveListing": "Remove from saved",
+  "actionEditListing": "Edit",
+  "actionReserve": "Mark as reserved",
+  "actionMarkSold": "Mark as sold",
+  "actionMakeAvailable": "Make available again",
+  "actionHide": "Hide",
+  "actionRemove": "Remove listing",
+  "removeListingTitle": "Remove this listing?",
+  "removeListingMessage": "It stops being visible to everyone. This cannot be undone.",
+  "listingRemoved": "Listing removed",
+  "listingUpdated": "Listing updated",
+  "yourListing": "Your listing"
 }

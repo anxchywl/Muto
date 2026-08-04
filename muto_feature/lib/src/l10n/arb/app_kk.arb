@@ -111,5 +111,22 @@
   "imageIssueTooManyPixels": "Суретті өңдеу үшін тым үлкен.",
   "editorConflictMessage": "Хабарландыру ашылғаннан бері өзгерді. Жаңартып, қайталап көріңіз.",
   "listingPublished": "Хабарландыру жарияланды",
-  "listingSaved": "Өзгерістер сақталды"
+  "listingSaved": "Өзгерістер сақталды",
+  "favoritesEmptyTitle": "Әзірге сақталған ештеңе жоқ",
+  "favoritesEmptyMessage": "Сақтау үшін жүрекше белгісін басыңыз.",
+  "myListingsEmptyTitle": "Сізде хабарландыру жоқ",
+  "myListingsEmptyMessage": "Жариялағаныңыздың бәрі осында көрінеді.",
+  "actionSaveListing": "Хабарландыруды сақтау",
+  "actionUnsaveListing": "Сақталғандардан алу",
+  "actionEditListing": "Өңдеу",
+  "actionReserve": "Броньдалды деп белгілеу",
+  "actionMarkSold": "Сатылды деп белгілеу",
+  "actionMakeAvailable": "Қайта қолжетімді ету",
+  "actionHide": "Жасыру",
+  "actionRemove": "Хабарландыруды жою",
+  "removeListingTitle": "Хабарландыру жойылсын ба?",
+  "removeListingMessage": "Ол көрінбей қалады. Мұны кері қайтару мүмкін емес.",
+  "listingRemoved": "Хабарландыру жойылды",
+  "listingUpdated": "Хабарландыру жаңартылды",
+  "yourListing": "Сіздің хабарландыруыңыз"
 }

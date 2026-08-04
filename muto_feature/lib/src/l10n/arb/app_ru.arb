@@ -111,5 +111,22 @@
   "imageIssueTooManyPixels": "Изображение слишком большое для обработки.",
   "editorConflictMessage": "Объявление изменилось с момента открытия. Обновите и попробуйте снова.",
   "listingPublished": "Объявление опубликовано",
-  "listingSaved": "Изменения сохранены"
+  "listingSaved": "Изменения сохранены",
+  "favoritesEmptyTitle": "Пока ничего не сохранено",
+  "favoritesEmptyMessage": "Нажмите на сердечко, чтобы сохранить объявление.",
+  "myListingsEmptyTitle": "У вас нет объявлений",
+  "myListingsEmptyMessage": "Всё, что вы опубликуете, появится здесь.",
+  "actionSaveListing": "Сохранить объявление",
+  "actionUnsaveListing": "Убрать из сохранённых",
+  "actionEditListing": "Редактировать",
+  "actionReserve": "Отметить как забронированное",
+  "actionMarkSold": "Отметить как проданное",
+  "actionMakeAvailable": "Снова сделать доступным",
+  "actionHide": "Скрыть",
+  "actionRemove": "Удалить объявление",
+  "removeListingTitle": "Удалить объявление?",
+  "removeListingMessage": "Оно перестанет быть видимым. Это нельзя отменить.",
+  "listingRemoved": "Объявление удалено",
+  "listingUpdated": "Объявление обновлено",
+  "yourListing": "Ваше объявление"
 }

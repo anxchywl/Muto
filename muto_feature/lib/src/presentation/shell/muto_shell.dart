@@ -10,7 +10,9 @@ import '../../domain/entities/listing.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../browse/browse_screen.dart';
 import '../editor/listing_editor_screen.dart';
+import '../favorites/favorites_screen.dart';
 import '../listing/listing_detail_screen.dart';
+import '../my_listings/my_listings_screen.dart';
 
 /// The feature's own navigation surface.
 ///
@@ -26,11 +28,34 @@ class MutoShell extends StatefulWidget {
 }
 
 class _MutoShellState extends State<MutoShell> {
-  final GlobalKey<NavigatorState> _navigator = GlobalKey<NavigatorState>();
+  // one navigator per destination, so switching tabs keeps each stack rather
+  // than throwing it away
+  final List<GlobalKey<NavigatorState>> _navigators = [
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+    GlobalKey<NavigatorState>(),
+  ];
   int _destination = 0;
 
+  NavigatorState? get _navigator => _navigators[_destination].currentState;
+
+  /// Every destination is built up front so its stack survives a tab switch,
+  /// which also means its feed is loaded long before it is looked at. Opening
+  /// a tab therefore has to ask for fresh data rather than trusting what was
+  /// fetched at launch.
+  void _selectDestination(int index) {
+    setState(() => _destination = index);
+
+    final scope = MutoScope.of(context);
+    unawaited(switch (index) {
+      1 => scope.favorites.refresh(),
+      2 => scope.mine.refresh(),
+      _ => scope.browse.refresh(),
+    });
+  }
+
   Future<void> _openEditor() async {
-    final saved = await _navigator.currentState?.push<Listing>(
+    final saved = await _navigator?.push<Listing>(
       MaterialPageRoute<Listing>(builder: (_) => const ListingEditorScreen()),
     );
     if (saved == null || !mounted) return;
@@ -40,7 +65,7 @@ class _MutoShellState extends State<MutoShell> {
   }
 
   void _openListing(Listing listing) {
-    _navigator.currentState?.push(
+    _navigator?.push(
       MaterialPageRoute<void>(
         builder: (_) =>
             ListingDetailScreen(listingId: listing.id, preloaded: listing),
@@ -62,12 +87,22 @@ class _MutoShellState extends State<MutoShell> {
               onTap: () => _explainSampleData(context, strings),
             ),
           Expanded(
-            child: Navigator(
-              key: _navigator,
-              onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                settings: settings,
-                builder: (_) => BrowseScreen(onOpenListing: _openListing),
-              ),
+            child: IndexedStack(
+              index: _destination,
+              children: [
+                for (var i = 0; i < _navigators.length; i++)
+                  Navigator(
+                    key: _navigators[i],
+                    onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                      settings: settings,
+                      builder: (_) => switch (i) {
+                        1 => FavoritesScreen(onOpenListing: _openListing),
+                        2 => MyListingsScreen(onOpenListing: _openListing),
+                        _ => BrowseScreen(onOpenListing: _openListing),
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -81,7 +116,7 @@ class _MutoShellState extends State<MutoShell> {
           : null,
       bottomNavigationBar: _BottomBar(
         current: _destination,
-        onSelected: (index) => setState(() => _destination = index),
+        onSelected: _selectDestination,
         labels: [
           strings.navBrowse,
           strings.navFavorites,

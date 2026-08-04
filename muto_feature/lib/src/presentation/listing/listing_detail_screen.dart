@@ -10,9 +10,11 @@ import '../../domain/entities/listing_status.dart';
 import '../../domain/failures.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
+import '../editor/listing_editor_screen.dart';
 import '../images/listing_image_provider.dart';
 import 'contact_channels.dart';
 import 'contact_sheet.dart';
+import 'owner_actions.dart';
 
 /// One listing in full.
 ///
@@ -132,7 +134,9 @@ class _Content extends StatelessWidget {
     final scope = MutoScope.of(context);
     final strings = labels.strings;
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final isVerified = scope.session.identity?.isVerified ?? false;
+    final identity = scope.session.identity;
+    final isVerified = identity?.isVerified ?? false;
+    final isOwner = identity != null && listing.isOwnedBy(identity);
     final channels = contactChannelsOf(listing.contact);
     final notice = _noticeFor(listing.status, strings);
 
@@ -209,7 +213,9 @@ class _Content extends StatelessWidget {
                 body: listing.sellerDisplayName,
               ),
               const SizedBox(height: AppSpacing.xl),
-              if (!isVerified)
+              if (isOwner)
+                _OwnerActions(listing: listing, strings: strings)
+              else if (!isVerified)
                 Text(
                   strings.contactUnavailableUnverified,
                   style: AppTextStyles.bodySmall.copyWith(
@@ -244,6 +250,125 @@ String? _noticeFor(ListingStatus status, MutoLocalizations strings) {
     ListingStatus.reserved => strings.noticeReserved,
     _ => null,
   };
+}
+
+/// Everything the owner may do to their own listing, taken from the transition
+/// map so the screen can never offer a move the rules would refuse.
+class _OwnerActions extends StatefulWidget {
+  const _OwnerActions({required this.listing, required this.strings});
+
+  final Listing listing;
+  final MutoLocalizations strings;
+
+  @override
+  State<_OwnerActions> createState() => _OwnerActionsState();
+}
+
+class _OwnerActionsState extends State<_OwnerActions> {
+  bool _busy = false;
+
+  Future<void> _apply(OwnerAction action) async {
+    if (_busy) return;
+    final scope = MutoScope.of(context);
+    final strings = widget.strings;
+
+    if (action.isDestructive) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(strings.removeListingTitle),
+          content: Text(strings.removeListingMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(strings.actionCancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(strings.actionRemove),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() => _busy = true);
+    final generation = scope.generation.value;
+    try {
+      final updated = await scope.dependencies.listings.changeStatus(
+        widget.listing.id,
+        action.next,
+        expected: widget.listing.version,
+      );
+      if (!mounted || !scope.generation.isCurrent(generation)) return;
+      scope.cache.patch(updated);
+      unawaited(scope.mine.refresh());
+      AppToast.showSuccess(
+        context,
+        action.isDestructive ? strings.listingRemoved : strings.listingUpdated,
+      );
+      unawaited(Navigator.of(context).maybePop());
+    } on MutoFailure catch (failure) {
+      if (!mounted) return;
+      if (failure is UnauthorizedFailure) scope.session.reportExpired();
+      AppToast.showError(
+        context,
+        failure is ConflictFailure
+            ? strings.editorConflictMessage
+            : strings.errorGeneric,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _edit() async {
+    final saved = await Navigator.of(context).push<Listing>(
+      MaterialPageRoute<Listing>(
+        builder: (_) => ListingEditorScreen(editing: widget.listing),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    unawaited(Navigator.of(context).maybePop());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    final actions = ownerActionsFor(widget.listing.status, strings);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          strings.yourListing,
+          style: AppTextStyles.labelMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (widget.listing.status.isEditable)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: AppSecondaryButton(
+              text: strings.actionEditListing,
+              size: AppButtonSize.medium,
+              onPressed: _busy ? null : () => unawaited(_edit()),
+            ),
+          ),
+        for (final action in actions)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: AppSecondaryButton(
+              text: action.label,
+              size: AppButtonSize.medium,
+              onPressed: _busy ? null : () => unawaited(_apply(action)),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _Notice extends StatelessWidget {

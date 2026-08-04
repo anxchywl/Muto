@@ -8,6 +8,7 @@ import '../domain/repositories/listing_repository.dart';
 import '../domain/repositories/session_repository.dart';
 import 'cache/generation.dart';
 import 'cache/listing_cache.dart';
+import 'favorites_controller.dart';
 import 'listing_feed_controller.dart';
 import 'session_controller.dart';
 
@@ -65,6 +66,7 @@ class _MutoScopeState extends State<MutoScope> {
   late final ListingFeedController _browse;
   late final ListingFeedController _mine;
   late final ListingFeedController _favorites;
+  late final FavoritesController _savedListings;
 
   @override
   void initState() {
@@ -80,6 +82,11 @@ class _MutoScopeState extends State<MutoScope> {
     _browse = _feed();
     _mine = _feed();
     _favorites = _feed();
+    _savedListings = FavoritesController(
+      repository: widget.dependencies.favorites,
+      generation: _generation,
+      onUnauthorized: _session.reportExpired,
+    );
   }
 
   ListingFeedController _feed() => ListingFeedController(
@@ -90,6 +97,7 @@ class _MutoScopeState extends State<MutoScope> {
 
   @override
   void dispose() {
+    _savedListings.dispose();
     _favorites.dispose();
     _mine.dispose();
     _browse.dispose();
@@ -108,6 +116,7 @@ class _MutoScopeState extends State<MutoScope> {
       browse: _browse,
       mine: _mine,
       favorites: _favorites,
+      savedListings: _savedListings,
       child: widget.child,
     );
   }
@@ -123,6 +132,7 @@ class MutoScopeData extends InheritedWidget {
     required this.browse,
     required this.mine,
     required this.favorites,
+    required this.savedListings,
     required super.child,
   });
 
@@ -133,6 +143,7 @@ class MutoScopeData extends InheritedWidget {
   final ListingFeedController browse;
   final ListingFeedController mine;
   final ListingFeedController favorites;
+  final FavoritesController savedListings;
 
   @override
   bool updateShouldNotify(MutoScopeData oldWidget) =>
