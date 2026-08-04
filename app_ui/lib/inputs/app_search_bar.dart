@@ -22,6 +22,8 @@ class GlobalSearchBar extends StatelessWidget {
     this.onFilterPressed,
     this.inputFormatters,
     this.maxLength,
+    this.clearTooltip,
+    this.filterTooltip,
   });
 
   final TextEditingController? controller;
@@ -37,6 +39,11 @@ class GlobalSearchBar extends StatelessWidget {
   final VoidCallback? onFilterPressed;
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
+
+  /// Names the clear and filter controls for assistive technology. Both are
+  /// icon-only, so without these they are announced as nothing at all.
+  final String? clearTooltip;
+  final String? filterTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +88,7 @@ class GlobalSearchBar extends StatelessWidget {
           if (controller?.text.isNotEmpty ?? false) ...[
             IconButton(
               icon: AppIcon(AppIcons.close, size: 20),
+              tooltip: clearTooltip,
               onPressed: () {
                 controller?.clear();
                 onClear?.call();
@@ -94,6 +102,7 @@ class GlobalSearchBar extends StatelessWidget {
             Container(height: 24, width: 1, color: AppColors.dividerColor),
             IconButton(
               icon: AppIcon(AppIcons.filter, size: 20, color: AppColors.grey),
+              tooltip: filterTooltip,
               onPressed: onFilterPressed,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),

@@ -52,7 +52,6 @@
   "listingSemanticsWithStatus": "{title}, {price}, {status}",
   "listingImageSemantics": "Фото: {title}",
   "openFiltersSemantics": "Открыть фильтры",
-  "clearSearchSemantics": "Очистить поиск",
   "sessionExpiredTitle": "Сессия истекла",
   "sessionExpiredMessage": "Откройте Muto снова, чтобы продолжить.",
   "sessionFailedTitle": "Не удалось запустить Muto",
@@ -128,5 +127,6 @@
   "removeListingMessage": "Оно перестанет быть видимым. Это нельзя отменить.",
   "listingRemoved": "Объявление удалено",
   "listingUpdated": "Объявление обновлено",
-  "yourListing": "Ваше объявление"
+  "yourListing": "Ваше объявление",
+  "clearSearchSemantics": "Очистить поиск"
 }

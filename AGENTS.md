@@ -13,11 +13,16 @@ Rules for anyone — human or model — writing code in this repository.
 ## Packages
 
 ```text
-app_ui/        shared presentation kit — read-only, never edited here
+app_ui/        shared presentation kit, vendored from the Events project
 muto_ui/       marketplace presentation built on app_ui tokens
 muto_feature/  the embeddable feature: domain, application, data, presentation
 muto_app/      standalone Flutter host: MaterialApp, theme, locale, lifecycle
 ```
+
+`app_ui` is a copy of the kit the Events project uses. Prefer leaving it alone.
+Change it only when the fix belongs there rather than here — an accessibility
+gap, a bug affecting every consumer — and then keep it generic, match the
+surrounding style, and add nothing marketplace-specific.
 
 Dependency direction is one way:
 
@@ -99,7 +104,7 @@ Rules:
 
 ## What not to do
 
-- Do not edit anything under `app_ui/`.
+- Do not put marketplace concepts into `app_ui/` or `muto_ui/`.
 - Do not refactor code unrelated to the current task.
 - Do not add logging unless asked.
 - Do not write docstrings — type hints and good names are enough.

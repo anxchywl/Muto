@@ -121,7 +121,6 @@
     }
   },
   "openFiltersSemantics": "Open filters",
-  "clearSearchSemantics": "Clear search",
   "sessionExpiredTitle": "Session expired",
   "sessionExpiredMessage": "Open Muto again to continue.",
   "sessionFailedTitle": "Could not start Muto",
@@ -231,5 +230,6 @@
   "removeListingMessage": "It stops being visible to everyone. This cannot be undone.",
   "listingRemoved": "Listing removed",
   "listingUpdated": "Listing updated",
-  "yourListing": "Your listing"
+  "yourListing": "Your listing",
+  "clearSearchSemantics": "Clear search"
 }

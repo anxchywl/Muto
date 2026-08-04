@@ -52,7 +52,6 @@
   "listingSemanticsWithStatus": "{title}, {price}, {status}",
   "listingImageSemantics": "Фото: {title}",
   "openFiltersSemantics": "Сүзгілерді ашу",
-  "clearSearchSemantics": "Іздеуді тазалау",
   "sessionExpiredTitle": "Сессия аяқталды",
   "sessionExpiredMessage": "Жалғастыру үшін Muto-ны қайта ашыңыз.",
   "sessionFailedTitle": "Muto іске қосылмады",
@@ -128,5 +127,6 @@
   "removeListingMessage": "Ол көрінбей қалады. Мұны кері қайтару мүмкін емес.",
   "listingRemoved": "Хабарландыру жойылды",
   "listingUpdated": "Хабарландыру жаңартылды",
-  "yourListing": "Сіздің хабарландыруыңыз"
+  "yourListing": "Сіздің хабарландыруыңыз",
+  "clearSearchSemantics": "Іздеуді тазалау"
 }

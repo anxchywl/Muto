@@ -165,6 +165,74 @@ void main() {
     handle.dispose();
   });
 
+  group('filters', () {
+    testWidgets('narrows the feed to one category', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.byTooltip('Open filters'));
+      await tester.pumpAndSettle();
+      expect(find.text('Filters'), findsOneWidget);
+
+      await tester.tap(find.text('Textbooks').last);
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('University Physics, volume 1'), findsOneWidget);
+      expect(find.text('Small study lamp, clip-on'), findsNothing);
+    });
+
+    testWidgets('narrows the feed to giveaways', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.byTooltip('Open filters'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Free').last);
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Free'), findsWidgets);
+      expect(find.text('University Physics, volume 1'), findsNothing);
+    });
+
+    testWidgets('says so when nothing matches', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.byTooltip('Open filters'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tickets').last);
+      await tester.tap(find.text('Swap').last);
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nothing here yet'), findsOneWidget);
+    });
+
+    testWidgets('resetting brings everything back', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.byTooltip('Open filters'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Textbooks').last);
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Small study lamp, clip-on'), findsOneWidget);
+    });
+
+    testWidgets('translates the filter sheet', (tester) async {
+      await _pumpFeature(tester, locale: const Locale('kk'));
+
+      await tester.tap(find.byTooltip('Сүзгілерді ашу'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Сүзгілер'), findsOneWidget);
+      expect(find.text('Оқулықтар'), findsOneWidget);
+      expect(find.text('Қолдану'), findsOneWidget);
+    });
+  });
+
   testWidgets('being offline at startup fails the session, not the feed', (
     tester,
   ) async {
