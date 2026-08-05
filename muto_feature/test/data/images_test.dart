@@ -161,7 +161,9 @@ void main() {
       );
       expect(
         location,
-        const BundledImageLocation('assets/sample/images/sample-01.png'),
+        const BundledImageLocation(
+          'packages/muto_feature/assets/sample/images/sample-01.png',
+        ),
       );
     });
 

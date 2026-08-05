@@ -71,7 +71,10 @@ final class MockImageLocator implements ImageLocator {
     final staged = _store.get(ref.id);
     if (staged != null) return MemoryImageLocation(staged);
     if (bundled.contains(ref.id)) {
-      return BundledImageLocation('assets/sample/images/${ref.id}.png');
+      // package-qualified for the same reason the sample file is
+      return BundledImageLocation(
+        'packages/muto_feature/assets/sample/images/${ref.id}.png',
+      );
     }
     return null;
   }

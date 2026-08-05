@@ -39,6 +39,11 @@ class _HostAppState extends State<HostApp> {
       home: FutureBuilder<MutoDependencies>(
         future: _dependencies,
         builder: (context, snapshot) {
+          // a failure here used to look exactly like loading, which hid a
+          // broken asset path behind a spinner that never stopped
+          if (snapshot.hasError) {
+            return _StartupFailure(error: snapshot.error!);
+          }
           final dependencies = snapshot.data;
           if (dependencies == null) {
             return const Scaffold(body: Center(child: AppLoader()));
@@ -49,6 +54,30 @@ class _HostAppState extends State<HostApp> {
             config: const MutoConfig.sample(),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Development scaffolding: the standalone host has no way to recover from a
+/// bad build, so it says what went wrong instead of spinning.
+class _StartupFailure extends StatelessWidget {
+  const _StartupFailure({required this.error});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: AppSpacing.screenPadding,
+          child: Text(
+            '$error',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+          ),
+        ),
       ),
     );
   }

@@ -14,7 +14,12 @@ import '../../domain/entities/money.dart';
 import '../../domain/entities/page.dart';
 import '../../domain/entities/seller_contact.dart';
 
-const String kSampleListingsAsset = 'assets/sample/listings.json';
+/// Package-qualified on purpose. A package's own assets are bundled under
+/// `packages/<name>/` once another package depends on it, so the bare path
+/// only ever resolves when this package is the root — which it is in tests and
+/// is not in a real host.
+const String kSampleListingsAsset =
+    'packages/muto_feature/assets/sample/listings.json';
 
 /// The seed the mock repositories start from.
 final class SampleData {
