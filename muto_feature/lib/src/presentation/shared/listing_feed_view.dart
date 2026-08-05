@@ -71,8 +71,6 @@ class _ListingFeedViewState extends State<ListingFeedView> {
     final labels = widget.labels;
     final strings = labels.strings;
 
-    if (!feed.hasLoaded && feed.isLoading) return const ListingSkeleton();
-
     if (!feed.hasLoaded && feed.failure != null) {
       return StateMessage(
         icon: AppIcons.alertCircle,
@@ -82,6 +80,9 @@ class _ListingFeedViewState extends State<ListingFeedView> {
         onAction: () => unawaited(feed.refresh()),
       );
     }
+
+    // nothing has arrived yet, which is not the same as nothing matching
+    if (!feed.hasLoaded) return const ListingSkeleton();
 
     if (feed.items.isEmpty) {
       return StateMessage(

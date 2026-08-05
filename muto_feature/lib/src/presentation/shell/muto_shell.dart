@@ -55,8 +55,13 @@ class _MutoShellState extends State<MutoShell> {
   }
 
   Future<void> _openEditor() async {
-    final saved = await _navigator?.push<Listing>(
-      MaterialPageRoute<Listing>(builder: (_) => const ListingEditorScreen()),
+    // pushed on the feature's navigator, not the tab's, so it covers the whole
+    // surface the way a separate task should
+    final saved = await Navigator.of(context).push<Listing>(
+      MaterialPageRoute<Listing>(
+        fullscreenDialog: true,
+        builder: (_) => const ListingEditorScreen(),
+      ),
     );
     if (saved == null || !mounted) return;
     // the feed was marked stale by the write; reload it so the listing the
@@ -82,9 +87,12 @@ class _MutoShellState extends State<MutoShell> {
       body: Column(
         children: [
           if (widget.config.usesSampleData)
-            SampleDataBanner(
-              label: strings.sampleDataIndicator,
-              onTap: () => _explainSampleData(context, strings),
+            SafeArea(
+              bottom: false,
+              child: SampleDataBanner(
+                label: strings.sampleDataIndicator,
+                onTap: () => _explainSampleData(context, strings),
+              ),
             ),
           Expanded(
             child: IndexedStack(
