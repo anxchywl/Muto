@@ -44,6 +44,20 @@
   "@filterAny": {
     "description": "Option meaning no restriction on a filter"
   },
+  "categoryAll": "All",
+  "@categoryAll": {
+    "description": "First chip in the category row, meaning no category chosen"
+  },
+  "searchRecentTitle": "Recent searches",
+  "actionClearRecentSearches": "Clear",
+  "removeRecentSearchSemantics": "Remove {term} from recent searches",
+  "@removeRecentSearchSemantics": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
   "kindSale": "For sale",
   "kindExchange": "Swap",
   "kindGiveaway": "Free",
@@ -231,5 +245,41 @@
   "listingRemoved": "Listing removed",
   "listingUpdated": "Listing updated",
   "yourListing": "Your listing",
-  "clearSearchSemantics": "Clear search"
+  "clearSearchSemantics": "Clear search",
+  "openSellerSemantics": "Open {name}'s listings",
+  "@openSellerSemantics": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sellerVerified": "Verified student",
+  "sellerSince": "Listing since {date}",
+  "@sellerSince": {
+    "description": "When the seller's first listing appeared, month and year",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sellerDetailsUnavailable": "Could not load this seller.",
+  "sellerEmptyTitle": "Nothing listed right now",
+  "sellerEmptyMessage": "This seller has no listings available at the moment.",
+  "actionReportListing": "Report this listing",
+  "reportTitle": "Report this listing",
+  "reportSubtitle": "Tell us what is wrong with it. We do not tell the seller who reported them.",
+  "reportReasonProhibited": "Not allowed",
+  "reportReasonMisleading": "Misleading",
+  "reportReasonOffensive": "Offensive",
+  "reportReasonOther": "Something else",
+  "reportNoteLabel": "Anything to add",
+  "reportNoteLabelRequired": "What is wrong",
+  "reportNoteHint": "Optional, but it helps",
+  "reportNoteRequired": "Say briefly what is wrong with this listing.",
+  "reportNoteTooLong": "Keep this under 500 characters.",
+  "reportTooMany": "You have sent several reports recently. Try again later.",
+  "actionSendReport": "Send report",
+  "reportSent": "Report sent"
 }

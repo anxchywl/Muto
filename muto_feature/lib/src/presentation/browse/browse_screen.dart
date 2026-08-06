@@ -6,11 +6,14 @@ import 'package:flutter/material.dart';
 import '../../application/cache/cache_keys.dart';
 import '../../application/muto_scope.dart';
 import '../../domain/entities/listing.dart';
+import '../../domain/entities/listing_category.dart';
 import '../../domain/repositories/listing_repository.dart';
 import '../../domain/validation/text_rules.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
+import '../search/search_panel.dart';
 import '../shared/listing_feed_view.dart';
+import 'category_strip.dart';
 import 'filter_sheet.dart';
 
 class BrowseScreen extends StatefulWidget {
@@ -24,22 +27,37 @@ class BrowseScreen extends StatefulWidget {
 
 class _BrowseScreenState extends State<BrowseScreen> {
   final TextEditingController _search = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
 
   ListingQuery _query = const ListingQuery();
   Timer? _debounce;
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
+    _searchFocus.addListener(_onFocusChanged);
+    // the panel and the clear control both depend on whether anything has been
+    // typed, which the field alone does not tell this screen
+    _search.addListener(_onTextChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _apply();
+      if (!mounted) return;
+      _apply();
+      final scope = MutoScope.of(context);
+      final identity = scope.session.identity;
+      if (identity != null) unawaited(scope.search.start(identity.userId));
     });
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _search.dispose();
+    _searchFocus
+      ..removeListener(_onFocusChanged)
+      ..dispose();
+    _search
+      ..removeListener(_onTextChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -56,18 +74,52 @@ class _BrowseScreenState extends State<BrowseScreen> {
     unawaited(scope.browse.load());
   }
 
+  void _onFocusChanged() {
+    setState(() => _isSearching = _searchFocus.hasFocus);
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
   void _onSearchChanged(String raw) {
+    MutoScope.of(context).search.textChanged(raw);
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      final text = TextRules.normalizeLine(raw);
-      setState(() {
-        _query = text.isEmpty
-            ? _query.copyWith(clearText: true)
-            : _query.copyWith(text: text);
-      });
-      _apply();
+      _runSearch(TextRules.normalizeLine(raw), remember: false);
     });
+  }
+
+  /// A term the student chose deliberately — typed and submitted, or picked
+  /// from the panel. Only these are worth remembering.
+  void _onSearchSubmitted(String raw) {
+    _debounce?.cancel();
+    final term = TextRules.normalizeLine(raw);
+    if (_search.text != term) _search.text = term;
+    _searchFocus.unfocus();
+    _runSearch(term, remember: true);
+  }
+
+  void _runSearch(String term, {required bool remember}) {
+    setState(() {
+      _query = term.isEmpty
+          ? _query.copyWith(clearText: true)
+          : _query.copyWith(text: term);
+    });
+    _apply();
+    if (remember && term.isNotEmpty) {
+      unawaited(MutoScope.of(context).search.submitted(term));
+    }
+  }
+
+  void _onCategorySelected(ListingCategory? category) {
+    setState(() {
+      _query = category == null
+          ? _query.copyWith(clearCategory: true)
+          : _query.copyWith(category: category);
+    });
+    _apply();
   }
 
   Future<void> _openFilters(ListingLabels labels) async {
@@ -104,8 +156,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
               ),
               child: GlobalSearchBar(
                 controller: _search,
+                focusNode: _searchFocus,
                 hint: strings.searchHint,
                 onChanged: _onSearchChanged,
+                onSubmitted: _onSearchSubmitted,
                 onClear: () => _onSearchChanged(''),
                 clearTooltip: strings.clearSearchSemantics,
                 showFilterButton: true,
@@ -113,19 +167,40 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 onFilterPressed: () => unawaited(_openFilters(labels)),
               ),
             ),
+            CategoryStrip(
+              selected: _query.category,
+              labels: labels,
+              onSelected: _onCategorySelected,
+            ),
+            const SizedBox(height: AppSpacing.sm),
             Expanded(
-              // rebuilt apart from the search field, so a feed update cannot
-              // take the caret away mid-typing
-              child: ListenableBuilder(
-                listenable: scope.browse,
-                builder: (context, _) => ListingFeedView(
-                  feed: scope.browse,
-                  labels: labels,
-                  onOpenListing: widget.onOpenListing,
-                  emptyIcon: AppIcons.search,
-                  emptyTitle: strings.browseEmptyTitle,
-                  emptyMessage: strings.browseEmptyMessage,
-                ),
+              // the panel covers the feed instead of replacing it, so
+              // dismissing the field puts the reader back where they were
+              child: Stack(
+                children: [
+                  // rebuilt apart from the search field, so a feed update
+                  // cannot take the caret away mid-typing
+                  ListenableBuilder(
+                    listenable: scope.browse,
+                    builder: (context, _) => ListingFeedView(
+                      feed: scope.browse,
+                      labels: labels,
+                      onOpenListing: widget.onOpenListing,
+                      emptyIcon: AppIcons.search,
+                      emptyTitle: strings.browseEmptyTitle,
+                      emptyMessage: strings.browseEmptyMessage,
+                    ),
+                  ),
+                  if (_isSearching)
+                    Positioned.fill(
+                      child: SearchPanel(
+                        controller: scope.search,
+                        hasText: _search.text.trim().isNotEmpty,
+                        onTerm: _onSearchSubmitted,
+                        strings: strings,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

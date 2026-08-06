@@ -9,6 +9,7 @@ import '../../domain/entities/listing_condition.dart';
 import '../../domain/entities/listing_kind.dart';
 import '../../domain/entities/listing_status.dart';
 import '../../domain/entities/money.dart';
+import '../../domain/entities/report_reason.dart';
 import '../../domain/repositories/listing_repository.dart';
 import '../../l10n/generated/muto_localizations.dart';
 
@@ -146,4 +147,22 @@ final class ListingLabels {
 
   String savedAt(DateTime moment) =>
       DateFormat.jm(localeName).format(moment.toLocal());
+
+  /// Deliberately coarse. When someone joined is context, not a fact anyone
+  /// needs to the day.
+  String monthAndYear(DateTime moment) =>
+      DateFormat.yMMMM(localeName).format(moment.toLocal());
+
+  String reportReason(ReportReason value) {
+    switch (value) {
+      case ReportReason.prohibited:
+        return strings.reportReasonProhibited;
+      case ReportReason.misleading:
+        return strings.reportReasonMisleading;
+      case ReportReason.offensive:
+        return strings.reportReasonOffensive;
+      case ReportReason.other:
+        return strings.reportReasonOther;
+    }
+  }
 }

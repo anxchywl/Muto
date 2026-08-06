@@ -12,6 +12,8 @@ import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
 import '../editor/listing_editor_screen.dart';
 import '../images/listing_image_provider.dart';
+import '../report/report_sheet.dart';
+import '../seller/seller_profile_screen.dart';
 import 'contact_channels.dart';
 import 'contact_sheet.dart';
 import 'owner_actions.dart';
@@ -208,10 +210,7 @@ class _Content extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.lg),
-              _Section(
-                title: strings.detailSeller,
-                body: listing.sellerDisplayName,
-              ),
+              _SellerRow(listing: listing, strings: strings),
               const SizedBox(height: AppSpacing.xl),
               if (isOwner)
                 _OwnerActions(listing: listing, strings: strings)
@@ -235,6 +234,10 @@ class _Content extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (!isOwner) ...[
+                const SizedBox(height: AppSpacing.sm),
+                _ReportAction(listingId: listing.id, labels: labels),
+              ],
               const SizedBox(height: AppSpacing.xl),
             ],
           ),
@@ -250,6 +253,88 @@ String? _noticeFor(ListingStatus status, MutoLocalizations strings) {
     ListingStatus.reserved => strings.noticeReserved,
     _ => null,
   };
+}
+
+/// Who is selling, and the way through to everything else they have listed.
+class _SellerRow extends StatelessWidget {
+  const _SellerRow({required this.listing, required this.strings});
+
+  final Listing listing;
+  final MutoLocalizations strings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: strings.openSellerSemantics(listing.sellerDisplayName),
+      excludeSemantics: true,
+      // its own node, so the row is announced as a control rather than folded
+      // into the block of text above it
+      container: true,
+      child: InkWell(
+        borderRadius: AppSpacing.borderRadiusMd,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SellerProfileScreen(
+              sellerId: listing.sellerId,
+              sellerDisplayName: listing.sellerDisplayName,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Row(
+            children: [
+              Expanded(
+                child: _Section(
+                  title: strings.detailSeller,
+                  body: listing.sellerDisplayName,
+                ),
+              ),
+              AppIcon(
+                AppIcons.chevronRight,
+                size: 20,
+                color: AppColors.iconSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Reporting sits below the contact action, quiet but reachable. It is not an
+/// owner's action, and it never appears on a listing the reader owns.
+class _ReportAction extends StatelessWidget {
+  const _ReportAction({required this.listingId, required this.labels});
+
+  final String listingId;
+  final ListingLabels labels;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = labels.strings;
+
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: AppTextButton(
+        text: strings.actionReportListing,
+        textColor: AppColors.textSecondary,
+        onPressed: () => unawaited(_open(context)),
+      ),
+    );
+  }
+
+  Future<void> _open(BuildContext context) async {
+    final sent = await showReportSheet(
+      context,
+      listingId: listingId,
+      labels: labels,
+    );
+    if (sent != true || !context.mounted) return;
+    AppToast.showSuccess(context, labels.strings.reportSent);
+  }
 }
 
 /// Everything the owner may do to their own listing, taken from the transition

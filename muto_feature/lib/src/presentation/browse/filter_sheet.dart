@@ -1,5 +1,6 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:muto_ui/muto_ui.dart';
 
 import '../../domain/entities/listing_category.dart';
 import '../../domain/entities/listing_condition.dart';
@@ -163,8 +164,6 @@ class _Group<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -180,69 +179,20 @@ class _Group<T> extends StatelessWidget {
           runSpacing: AppSpacing.sm,
           children: [
             if (anyLabel != null)
-              _Choice(
+              SelectableChip(
                 label: anyLabel!,
                 selected: selected == null,
-                isLight: isLight,
                 onTap: () => onSelected(null),
               ),
             for (final value in values)
-              _Choice(
+              SelectableChip(
                 label: labelOf(value as T),
                 selected: selected == value,
-                isLight: isLight,
                 onTap: () => onSelected(value),
               ),
           ],
         ),
       ],
-    );
-  }
-}
-
-class _Choice extends StatelessWidget {
-  const _Choice({
-    required this.label,
-    required this.selected,
-    required this.isLight,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final bool isLight;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final background = selected
-        ? (isLight ? AppColors.primaryLight : AppColors.primaryLightDark)
-        : (isLight ? AppColors.serviceBackground : AppColors.borderDark);
-    final foreground = selected
-        ? (isLight ? AppColors.primary : AppColors.primaryAccentDark)
-        : AppColors.textSecondary;
-
-    return Semantics(
-      selected: selected,
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusSm,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: AppSpacing.borderRadiusSm,
-          ),
-          child: Text(
-            label,
-            style: AppTextStyles.chip.copyWith(color: foreground),
-          ),
-        ),
-      ),
     );
   }
 }

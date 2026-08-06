@@ -10,6 +10,7 @@ import 'package:muto_feature/src/data/mock/sample_dependencies.dart';
 import 'package:muto_feature/src/domain/entities/identity.dart';
 import 'package:muto_feature/src/domain/entities/listing_status.dart';
 import 'package:muto_ui/muto_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 late SampleData _data;
 
@@ -58,6 +59,8 @@ void main() {
       File('assets/sample/listings.json').readAsStringSync(),
     );
   });
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('opens a listing from the feed', (tester) async {
     await _openListing(tester, 'Small study lamp, clip-on');

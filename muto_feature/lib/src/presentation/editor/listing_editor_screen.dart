@@ -239,6 +239,9 @@ class _Form extends StatelessWidget {
           label: strings.editorFieldTitle,
           controller: title,
           maxLength: 80,
+          // single-line fields hand over to the next one; the description is
+          // deliberately left alone, since a paragraph needs its return key
+          textInputAction: TextInputAction.next,
           errorText: issueMessage(issues.firstFor(ListingField.title), strings),
           onChanged: (value) =>
               editor.edit((current) => current.copyWith(title: value)),
@@ -268,6 +271,7 @@ class _Form extends StatelessWidget {
             label: strings.editorFieldLookingFor,
             controller: wantedItems,
             maxLength: 200,
+            textInputAction: TextInputAction.done,
             errorText: issueMessage(
               issues.firstFor(ListingField.wantedItems),
               strings,
@@ -350,6 +354,7 @@ class _PriceField extends StatelessWidget {
                 label: strings.editorFieldPrice,
                 controller: field,
                 keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.next,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 errorText: issueMessage(
                   issues.firstFor(ListingField.price),

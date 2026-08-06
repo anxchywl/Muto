@@ -235,7 +235,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Сүзгілер'), findsOneWidget);
-      expect(find.text('Оқулықтар'), findsOneWidget);
+      // the category row behind the sheet carries the same word
+      expect(find.text('Оқулықтар'), findsNWidgets(2));
       expect(find.text('Қолдану'), findsOneWidget);
     });
   });
