@@ -96,7 +96,14 @@ class _SessionGateState extends State<_SessionGate> {
       builder: (context, _) {
         switch (session.status) {
           case SessionStatus.ready:
-            return MutoShell(config: widget.config);
+            // the shell is the first route of the feature's own navigator, so
+            // the editor can cover the tabs rather than open inside one
+            return Navigator(
+              onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                settings: settings,
+                builder: (_) => MutoShell(config: widget.config),
+              ),
+            );
           case SessionStatus.idle:
           case SessionStatus.resolving:
             return Scaffold(

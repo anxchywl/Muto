@@ -69,6 +69,24 @@ void main() {
     expect(find.text('New listing'), findsWidgets);
   });
 
+  testWidgets('counts photos the way round a reader expects', (tester) async {
+    await _pump(tester);
+    await _openEditor(tester);
+
+    expect(find.text('0 of 6'), findsOneWidget);
+  });
+
+  testWidgets('covers the shell rather than opening inside a tab', (
+    tester,
+  ) async {
+    await _pump(tester);
+    await _openEditor(tester);
+
+    // the tab bar and the compose button belong to the shell underneath
+    expect(find.text('Browse'), findsNothing);
+    expect(find.byType(FloatingActionButton), findsNothing);
+  });
+
   testWidgets('an unverified student is offered no way to publish', (
     tester,
   ) async {

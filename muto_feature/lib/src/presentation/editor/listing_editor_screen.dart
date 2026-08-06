@@ -449,7 +449,7 @@ class _Photos extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              strings.editorPhotoCount(ListingRules.maxImages, images.length),
+              strings.editorPhotoCount(images.length, ListingRules.maxImages),
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.textSecondary,
               ),
