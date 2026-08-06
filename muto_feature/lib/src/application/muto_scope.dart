@@ -5,11 +5,15 @@ import '../domain/repositories/favorites_repository.dart';
 import '../domain/repositories/image_locator.dart';
 import '../domain/repositories/image_repository.dart';
 import '../domain/repositories/listing_repository.dart';
+import '../domain/repositories/report_repository.dart';
+import '../domain/repositories/search_history_store.dart';
+import '../domain/repositories/seller_repository.dart';
 import '../domain/repositories/session_repository.dart';
 import 'cache/generation.dart';
 import 'cache/listing_cache.dart';
 import 'favorites_controller.dart';
 import 'listing_feed_controller.dart';
+import 'search_controller.dart';
 import 'session_controller.dart';
 
 /// Everything the feature needs from the outside world, gathered in one place
@@ -18,18 +22,24 @@ final class MutoDependencies {
   const MutoDependencies({
     required this.session,
     required this.listings,
+    required this.sellers,
     required this.favorites,
+    required this.reports,
     required this.images,
     required this.imageLocator,
     required this.drafts,
+    required this.searchHistory,
   });
 
   final SessionRepository session;
   final ListingRepository listings;
+  final SellerRepository sellers;
   final FavoritesRepository favorites;
+  final ReportRepository reports;
   final ImageRepository images;
   final ImageLocator imageLocator;
   final DraftStore drafts;
+  final SearchHistoryStore searchHistory;
 }
 
 /// Owns the controllers for one mounting of the feature.
@@ -67,6 +77,7 @@ class _MutoScopeState extends State<MutoScope> {
   late final ListingFeedController _mine;
   late final ListingFeedController _favorites;
   late final FavoritesController _savedListings;
+  late final MutoSearchController _search;
 
   @override
   void initState() {
@@ -87,6 +98,12 @@ class _MutoScopeState extends State<MutoScope> {
       generation: _generation,
       onUnauthorized: _session.reportExpired,
     );
+    _search = MutoSearchController(
+      listings: widget.dependencies.listings,
+      history: widget.dependencies.searchHistory,
+      generation: _generation,
+      onUnauthorized: _session.reportExpired,
+    );
   }
 
   ListingFeedController _feed() => ListingFeedController(
@@ -97,6 +114,7 @@ class _MutoScopeState extends State<MutoScope> {
 
   @override
   void dispose() {
+    _search.dispose();
     _savedListings.dispose();
     _favorites.dispose();
     _mine.dispose();
@@ -117,6 +135,7 @@ class _MutoScopeState extends State<MutoScope> {
       mine: _mine,
       favorites: _favorites,
       savedListings: _savedListings,
+      search: _search,
       child: widget.child,
     );
   }
@@ -133,6 +152,7 @@ class MutoScopeData extends InheritedWidget {
     required this.mine,
     required this.favorites,
     required this.savedListings,
+    required this.search,
     required super.child,
   });
 
@@ -144,6 +164,15 @@ class MutoScopeData extends InheritedWidget {
   final ListingFeedController mine;
   final ListingFeedController favorites;
   final FavoritesController savedListings;
+  final MutoSearchController search;
+
+  /// A feed for a list that belongs to one screen rather than to the whole
+  /// mounting, such as a seller's page. The caller owns it and disposes it.
+  ListingFeedController createFeed() => ListingFeedController(
+    cache: cache,
+    generation: generation,
+    onUnauthorized: session.reportExpired,
+  );
 
   @override
   bool updateShouldNotify(MutoScopeData oldWidget) =>

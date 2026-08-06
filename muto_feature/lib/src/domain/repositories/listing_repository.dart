@@ -106,6 +106,13 @@ abstract interface class ListingRepository {
   /// details, and only for a viewer the authority considers verified.
   Future<Listing> byId(String id);
 
+  /// Terms that complete what the student is typing.
+  ///
+  /// A hint and nothing more: it carries no ids, no prices and no contact
+  /// details, so an autocomplete list can never become a way to read something
+  /// the feed would not show.
+  Future<List<String>> suggestions(String prefix);
+
   Future<Page<Listing>> mine({ListingStatus? status, Cursor? cursor});
 
   Future<Listing> create(

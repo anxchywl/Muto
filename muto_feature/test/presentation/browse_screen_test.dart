@@ -9,10 +9,15 @@ import 'package:muto_feature/src/data/mock/mock_environment.dart';
 import 'package:muto_feature/src/data/mock/mock_favorites_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_image_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_listing_repository.dart';
+import 'package:muto_feature/src/data/mock/mock_report_repository.dart';
+import 'package:muto_feature/src/data/mock/mock_seller_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_session_repository.dart';
 import 'package:muto_feature/src/data/mock/sample_data.dart';
 import 'package:muto_feature/src/data/mock/sample_dependencies.dart';
 import 'package:muto_ui/muto_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../support/fake_search_history_store.dart';
 
 late SampleData _data;
 
@@ -59,6 +64,8 @@ void main() {
       File('assets/sample/listings.json').readAsStringSync(),
     );
   });
+
+  setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('resolves a session and shows the feed', (tester) async {
     await _pumpFeature(tester);
@@ -261,10 +268,19 @@ void main() {
           latency: const MockLatency.none(),
         ),
         listings: listings,
+        sellers: MockSellerRepository(
+          source: () => listings.all,
+          latency: const MockLatency.none(),
+          faults: listingFaults,
+        ),
         favorites: MockFavoritesRepository(
           listings: listings,
           latency: const MockLatency.none(),
           faults: listingFaults,
+        ),
+        reports: MockReportRepository(
+          viewer: () => _data.viewer,
+          latency: const MockLatency.none(),
         ),
         images: MockImageRepository(
           store: store,
@@ -272,6 +288,7 @@ void main() {
         ),
         imageLocator: MockImageLocator(store: store, bundled: const {}),
         drafts: const PreferencesDraftStore(),
+        searchHistory: FakeSearchHistoryStore(),
       ),
     );
 

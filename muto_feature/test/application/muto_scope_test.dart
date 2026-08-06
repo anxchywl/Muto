@@ -8,8 +8,12 @@ import 'package:muto_feature/src/data/mock/mock_environment.dart';
 import 'package:muto_feature/src/data/mock/mock_favorites_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_image_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_listing_repository.dart';
+import 'package:muto_feature/src/data/mock/mock_report_repository.dart';
+import 'package:muto_feature/src/data/mock/mock_seller_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_session_repository.dart';
 import 'package:muto_feature/src/data/mock/sample_data.dart';
+
+import '../support/fake_search_history_store.dart';
 
 MutoDependencies _dependencies(SampleData data) {
   final store = StagedImageStore();
@@ -24,8 +28,16 @@ MutoDependencies _dependencies(SampleData data) {
       latency: const MockLatency.none(),
     ),
     listings: listings,
+    sellers: MockSellerRepository(
+      source: () => listings.all,
+      latency: const MockLatency.none(),
+    ),
     favorites: MockFavoritesRepository(
       listings: listings,
+      latency: const MockLatency.none(),
+    ),
+    reports: MockReportRepository(
+      viewer: () => data.viewer,
       latency: const MockLatency.none(),
     ),
     images: MockImageRepository(
@@ -34,6 +46,7 @@ MutoDependencies _dependencies(SampleData data) {
     ),
     imageLocator: MockImageLocator(store: store, bundled: const {}),
     drafts: const PreferencesDraftStore(),
+    searchHistory: FakeSearchHistoryStore(),
   );
 }
 

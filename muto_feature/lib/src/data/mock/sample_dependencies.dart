@@ -1,9 +1,12 @@
 import '../../application/muto_scope.dart';
 import '../local/preferences_draft_store.dart';
+import '../local/preferences_search_history_store.dart';
 import 'mock_environment.dart';
 import 'mock_favorites_repository.dart';
 import 'mock_image_repository.dart';
 import 'mock_listing_repository.dart';
+import 'mock_report_repository.dart';
+import 'mock_seller_repository.dart';
 import 'mock_session_repository.dart';
 import 'sample_data.dart';
 
@@ -60,8 +63,18 @@ MutoDependencies buildSampleDependencies(
       faults: shared,
     ),
     listings: listings,
+    sellers: MockSellerRepository(
+      source: () => listings.all,
+      latency: latency,
+      faults: shared,
+    ),
     favorites: MockFavoritesRepository(
       listings: listings,
+      latency: latency,
+      faults: shared,
+    ),
+    reports: MockReportRepository(
+      viewer: () => data.viewer,
       latency: latency,
       faults: shared,
     ),
@@ -71,5 +84,6 @@ MutoDependencies buildSampleDependencies(
       bundled: kBundledSampleImageIds,
     ),
     drafts: const PreferencesDraftStore(),
+    searchHistory: const PreferencesSearchHistoryStore(),
   );
 }

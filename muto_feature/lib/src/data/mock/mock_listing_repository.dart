@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 
 import '../../domain/entities/client_request_id.dart';
@@ -8,6 +9,7 @@ import '../../domain/entities/page.dart';
 import '../../domain/failures.dart';
 import '../../domain/repositories/listing_repository.dart';
 import '../../domain/validation/listing_rules.dart';
+import '../../domain/validation/search_rules.dart';
 import 'mock_environment.dart';
 
 /// An in-memory stand-in for the listing service.
@@ -29,6 +31,10 @@ final class MockListingRepository implements ListingRepository {
        _random = random ?? Random(20260730);
 
   static const int pageSize = 8;
+
+  /// A live view of what this repository holds, so a sibling mock reads the
+  /// same listings a write just changed rather than a copy taken at startup.
+  late final List<Listing> all = UnmodifiableListView(_listings);
 
   final List<Listing> _listings;
   final Identity Function() _viewer;
@@ -75,6 +81,33 @@ final class MockListingRepository implements ListingRepository {
 
     // contact belongs to a detail read, and only for a verified viewer
     return viewer.isVerified ? listing : _withoutContact(listing);
+  }
+
+  @override
+  Future<List<String>> suggestions(String prefix) async {
+    await Future<void>.delayed(latency.read);
+    faults.checkReadable();
+
+    final term = SearchRules.normalizeTerm(prefix)?.toLowerCase();
+    if (term == null || !SearchRules.isSuggestible(term)) return const [];
+
+    // how often a word is used decides the order, so the terms on offer are
+    // the ones that actually lead somewhere
+    final counts = <String, int>{};
+    for (final listing in _listings) {
+      if (!listing.status.isVisibleInBrowse) continue;
+      for (final word in _words(listing.title)) {
+        if (!word.startsWith(term)) continue;
+        counts[word] = (counts[word] ?? 0) + 1;
+      }
+    }
+
+    final ordered = counts.keys.toList()
+      ..sort((a, b) {
+        final byCount = counts[b]!.compareTo(counts[a]!);
+        return byCount != 0 ? byCount : a.compareTo(b);
+      });
+    return ordered.take(SearchRules.suggestionMax).toList();
   }
 
   @override
@@ -336,6 +369,15 @@ final class MockListingRepository implements ListingRepository {
       nextCursor: end < all.length ? Cursor('offset:$end') : null,
     );
   }
+
+  /// Splits on anything that is not a letter or a digit, so a title with a
+  /// comma or a hyphen still yields the words a reader would type.
+  static final RegExp _separators = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+
+  static Iterable<String> _words(String title) => title
+      .toLowerCase()
+      .split(_separators)
+      .where((word) => word.length >= SearchRules.suggestMinLength);
 
   static int _offsetOf(Cursor? cursor) {
     if (cursor == null) return 0;

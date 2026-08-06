@@ -14,6 +14,9 @@ abstract final class CacheKeys {
 
   static String draft(String userId) => '${namespace(userId)}_draft';
 
+  static String searchHistory(String userId) =>
+      '${namespace(userId)}_search_history';
+
   /// True for any key this feature owns, which is what makes a wipe on account
   /// switch exhaustive without touching what the host stored.
   static bool isOwned(String key) => key.startsWith('${_prefix}_');
@@ -26,6 +29,8 @@ abstract final class CacheKeys {
 
   static String mine(ListingStatus? status) =>
       'mine:${status?.wireValue ?? ''}';
+
+  static String seller(String sellerId) => 'seller:$sellerId';
 
   /// A stable name for one filter combination, so two identical browses share
   /// a cache entry and two different ones never collide.
