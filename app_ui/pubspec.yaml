@@ -1,5 +1,8 @@
 name: app_ui
-description: A shareable, reusable Flutter UI Kit with design tokens, widgets, and components.
+description: >-
+  Shared Flutter UI kit: design tokens, generic widgets, light and dark themes.
+  Vendored from the Student Events project and not developed here; see
+  ../docs/ARCHITECTURE.md before changing anything in it.
 
 version: 1.0.0
 

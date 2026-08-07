@@ -1,32 +1,85 @@
-# Dart / Flutter
+# Dart and Flutter
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 build/
-*.iml
-.idea/
-.vscode/
+*.dill
+doc/api/
 
 # library packages resolve from the application lockfile
 muto_ui/pubspec.lock
 muto_feature/pubspec.lock
 app_ui/pubspec.lock
 
-# test output
-coverage/
-
-# generated localizations
+# generated localizations, produced from the arb files
 muto_feature/lib/src/l10n/generated/
 
-# secrets and signing material
+# test and coverage output
+coverage/
+*.lcov
+test/failures/
+**/failures/
+
+# Android
+**/android/local.properties
+**/android/.gradle/
+**/android/captures/
+**/android/app/release/
+**/android/**/GeneratedPluginRegistrant.java
+*.apk
+*.aab
+*.ap_
+
+# iOS and macOS
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework/
+**/ios/Flutter/Flutter.framework/
+**/ios/Flutter/Flutter.podspec
+**/ios/Pods/
+**/ios/.symlinks/
+**/xcuserdata/
+*.ipa
+*.dSYM.zip
+
+# editors and IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.fleet/
+*.swp
+*~
+
+# environment and signing material
 .env
 .env.*
+!.env.example
 *.jks
 *.keystore
 key.properties
+*.p8
+*.p12
+*.mobileprovision
 google-services.json
 GoogleService-Info.plist
 
-# macOS
+# local tooling and scratch output
+.tool-versions
+.fvm/
+.envrc
+.direnv/
+*.log
+tmp/
+scratch/
+
+# containers, if a service is ever added here
+.docker/
+docker-compose.override.yml
+
+# operating system
 .DS_Store
+Thumbs.db
