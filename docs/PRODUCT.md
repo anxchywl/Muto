@@ -1,32 +1,35 @@
-# Product
+# Muto Product Specification
 
-What Muto does, what it deliberately does not do, and what is currently
-simulated. How it is built is in [ARCHITECTURE.md](ARCHITECTURE.md).
+Canonical product behaviour and rules. How it is built is in
+[ARCHITECTURE.md](./ARCHITECTURE.md); how it is run and shipped is in
+[INFRASTRUCTURE.md](./INFRASTRUCTURE.md); the summary is in
+[README.md](../README.md).
 
-## What it is
+## Surfaces
 
-A marketplace for verified Nazarbayev University students. Someone lists a
-thing they no longer need; someone else finds it and gets in touch. The
-exchange itself happens between the two people, off the app.
+- **Embeddable Flutter feature.** The marketplace itself: browse, search,
+  listing detail, seller profile, favorites, the student's own listings, the
+  editor, and reporting. Mounted inside a host application.
+- **Standalone Flutter host.** Development only. It supplies theme, locale and
+  a placeholder session so the feature can be run without a host, and a release
+  build of it refuses to open at all.
 
-## What a student can do
+The feature is not integrated with Jas Wallet. Standalone development access is
+the current state, and the host contract exists but has never been exercised
+against a real host.
 
-- Browse listings, search them, and narrow them by category, type, condition
-  and order
-- Open a listing and see its photos, price, condition and description
-- Save listings and come back to them
-- Contact a seller through Telegram, email or phone
-- Publish something for sale, for swap, or to give away
-- Manage their own listings: edit, reserve, mark sold, hide, relist, remove
+## Identity and roles
 
-## What it does not do, on purpose
-
-No payments, checkout, delivery, cart, or coupons. No ratings or reviews. No
-advertising or promoted listings. No in-app messaging: contact is external, and
-no conversation is ever stored. No moderation queue — this is peer to peer
-between students the university has already verified.
-
-Every one of these is a decision, not a gap.
+- The host supplies a token. It is exchanged for an identity and never stored.
+- The feature never decides who the student is, and never decides whether they
+  are verified. Both come back from whatever resolved the session.
+- There is no role in this product. A listing has an owner, and that is the
+  only distinction the marketplace makes.
+- Verification gates two things: publishing, and seeing a seller's contact
+  details. Nothing else changes with it.
+- An unauthorized response clears feature state and asks the host to
+  re-authenticate exactly once per token. Being offline is a different outcome
+  and never asks.
 
 ## Kinds of listing
 
@@ -37,10 +40,10 @@ Every one of these is a decision, not a gap.
 | Free | Never | — |
 
 A price is meaningless without a currency, so an amount is always held with
-one: KZT in whole tenge, USD in cents. Nothing is converted between them, and
-a price filter therefore applies inside one currency at a time.
+one: KZT in whole tenge, USD in cents. Nothing is converted between them, and a
+price filter therefore applies inside one currency at a time.
 
-## Lifecycle
+## Listing lifecycle
 
 ```text
 draft (on the device, never sent)
@@ -51,8 +54,19 @@ draft (on the device, never sent)
                    └──→ removed (final)
 ```
 
-Only the owner moves a listing, and only along an arrow above. Anything else is
-refused rather than quietly allowed.
+Rules:
+
+- Only the owner moves a listing, and only along an arrow above. Anything else
+  is refused rather than quietly allowed.
+- Publishing accepts a client request id. Repeating it with the same draft
+  returns the listing already created; reusing it with a changed draft is
+  rejected.
+- Every update carries the version it was read at. A stale write is refused
+  with a conflict rather than overwriting a newer one.
+- A photo reference is staged, owned by one account, and redeemed when the
+  listing is saved. One that is never redeemed expires.
+- Editing is possible while a listing is active, reserved or hidden. A sold
+  listing cannot be edited, only relisted or removed.
 
 ## Who sees what
 
@@ -67,17 +81,39 @@ refused rather than quietly allowed.
 A sold listing stays reachable on purpose. Someone following an old link is
 asking "did this go?", and answering that is more useful than an error.
 
-Editing is possible while a listing is active, reserved or hidden. A sold
-listing cannot be edited, only relisted or removed.
+## Finding things
+
+- Search, category, type, condition and order narrow the same feed. Pagination
+  is bounded and cursor-based.
+- Suggestions come from the titles of listings that are actually visible. They
+  carry no ids, no prices and no contact details.
+- Recent searches are recorded on submit, not on keystroke, are bounded to
+  eight, belong to one account, and never survive an account switch.
+- A seller's page shows their listings still in circulation and a count. There
+  is no reputation, no rating and no history of what they sold.
 
 ## Contact
 
 Seller contact details appear on the listing detail screen only, and only for a
 student the server considers verified. They are never in the feed, in search
-results, or in any preview.
+results, in a seller's page, or in any other preview.
 
-Nothing opens on its own. Choosing a channel shows the full destination first
-and waits for the student to agree.
+Contact details arrive as structured fields — a Telegram username, an email
+address, a phone number — never as a URL. The client validates each for shape
+and builds the destination itself. Nothing opens on its own: choosing a channel
+shows the full destination first and waits.
+
+## Reporting
+
+A student may report someone else's listing, never their own. A reason is
+required, and a note is required when the reason is "something else".
+
+Reporting is one way. There is no queue, no verdict, no appeal, and nothing
+that says whether anyone else reported the same listing. A retry sends nothing
+twice, and a burst is refused.
+
+Who reads a report, and what they can do about it, is undecided. Until that
+exists, reporting promises delivery and nothing more.
 
 ## Photos
 
@@ -95,6 +131,15 @@ English.
 Prices, dates and counts are formatted for the reader's language, including
 Russian's four plural forms.
 
+## What is not built, on purpose
+
+No payments, checkout, delivery, cart or coupons. No ratings or reviews. No
+advertising or promoted listings. No in-app messaging: contact is external, and
+no conversation is ever stored. No moderation queue, verdict or appeal — this
+is peer to peer between students the university has already verified.
+
+Every one of these is a decision, not a gap.
+
 ## What is simulated
 
 **There is no server.** Everything runs against sample data bundled with the
@@ -103,22 +148,23 @@ dismissed.
 
 Simulated, and behaving as the real thing is specified to:
 
-- listing reads, writes and status changes, including who is allowed to make
-  them
+- listing reads, writes and status changes, including who may make them
+- seller profiles, counted from the same listings the feed reads
+- search suggestions, drawn from the titles of what is listed
+- reports, including idempotent retries and a burst limit
 - pagination, page by page, with an opaque cursor
 - rejecting a write whose version is out of date
 - returning the same listing when a publish is retried with the same token
-- refusing a photo that breaks the rules
-- staging a photo and redeeming it when the listing is saved
+- refusing a photo that breaks the rules, and staging one that passes
 - failure injection: offline, expired session, forced conflict
 
 Not simulated, and not present at all:
 
 - any network call
 - any account system; the standalone host uses a placeholder session and no
-  credentials exist anywhere in this repository
+  credential exists anywhere in this repository
 - durability. Published listings live in memory and are gone when the app
-  restarts. Saved listings and the unfinished draft are the only things kept on
-  the device.
+  restarts. The unfinished draft and recent searches are the only things kept
+  on the device.
 
 Nothing in this repository has run against a real server.
