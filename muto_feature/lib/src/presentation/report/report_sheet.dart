@@ -24,6 +24,7 @@ Future<bool?> showReportSheet(
   final scope = MutoScope.of(context);
   return AppBottomSheet.show<bool>(
     context: context,
+    useRootNavigator: true,
     child: _ReportSheet(
       controller: ReportController(
         reports: scope.dependencies.reports,
@@ -84,17 +85,11 @@ class _ReportSheetState extends State<_ReportSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                strings.reportTitle,
-                style: AppTextStyles.titleMedium.copyWith(
-                  color: isLight
-                      ? AppColors.textPrimary
-                      : AppColors.textPrimaryDark,
-                ),
-              ),
+              SheetTitle(text: strings.reportTitle, isLight: isLight),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 strings.reportSubtitle,
+                textAlign: TextAlign.center,
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),

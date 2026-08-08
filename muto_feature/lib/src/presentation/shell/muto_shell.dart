@@ -95,22 +95,28 @@ class _MutoShellState extends State<MutoShell> {
               ),
             ),
           Expanded(
-            child: IndexedStack(
-              index: _destination,
-              children: [
-                for (var i = 0; i < _navigators.length; i++)
-                  Navigator(
-                    key: _navigators[i],
-                    onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                      settings: settings,
-                      builder: (_) => switch (i) {
-                        1 => FavoritesScreen(onOpenListing: _openListing),
-                        2 => MyListingsScreen(onOpenListing: _openListing),
-                        _ => BrowseScreen(onOpenListing: _openListing),
-                      },
+            // the banner already sits under the notch, so the destinations
+            // below it must not inset for it a second time
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: widget.config.usesSampleData,
+              child: IndexedStack(
+                index: _destination,
+                children: [
+                  for (var i = 0; i < _navigators.length; i++)
+                    Navigator(
+                      key: _navigators[i],
+                      onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                        settings: settings,
+                        builder: (_) => switch (i) {
+                          1 => FavoritesScreen(onOpenListing: _openListing),
+                          2 => MyListingsScreen(onOpenListing: _openListing),
+                          _ => BrowseScreen(onOpenListing: _openListing),
+                        },
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -130,7 +136,7 @@ class _MutoShellState extends State<MutoShell> {
           strings.navFavorites,
           strings.navMyListings,
         ],
-        icons: const [AppIcons.search, AppIcons.heart, AppIcons.request],
+        icons: const [AppIcons.home, AppIcons.heart, AppIcons.request],
       ),
     );
   }
@@ -216,6 +222,7 @@ class _NavButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     final accent = selected ? AppColors.primary : AppColors.iconSecondary;
 
     return Semantics(
@@ -231,7 +238,23 @@ class _NavButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppIcon(icon, size: 22, color: accent),
+              // the pill is what carries the selection; the colour alone would
+              // be a weak signal at this size
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? (isLight
+                            ? AppColors.primaryLight
+                            : AppColors.primaryLightDark)
+                      : Colors.transparent,
+                  borderRadius: AppSpacing.borderRadiusMd,
+                ),
+                child: AppIcon(icon, size: 22, color: accent),
+              ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 label,

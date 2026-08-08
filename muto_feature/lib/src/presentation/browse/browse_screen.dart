@@ -188,7 +188,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
                       onOpenListing: widget.onOpenListing,
                       emptyIcon: AppIcons.search,
                       emptyTitle: strings.browseEmptyTitle,
-                      emptyMessage: strings.browseEmptyMessage,
                     ),
                   ),
                   if (_isSearching)

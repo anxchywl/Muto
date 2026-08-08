@@ -88,7 +88,6 @@
   "statusSold": "Sold",
   "statusHidden": "Hidden",
   "browseEmptyTitle": "Nothing here yet",
-  "browseEmptyMessage": "No listings match what you are looking for. Try removing a filter.",
   "browseErrorTitle": "Could not load listings",
   "staleDataNotice": "Showing saved results from {time}",
   "@staleDataNotice": {

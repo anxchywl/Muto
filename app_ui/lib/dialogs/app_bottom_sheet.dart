@@ -34,12 +34,16 @@ class AppBottomSheet {
     bool isDismissible = true,
     bool enableDrag = true,
     double? maxHeightFraction,
+    bool useRootNavigator = false,
   }) {
     HapticFeedback.selectionClick();
     return showModalBottomSheet<T>(
       context: context,
       isDismissible: isDismissible,
       enableDrag: enableDrag,
+      // a sheet pushed on a nested navigator renders below anything the outer
+      // route floats above it, a floating action button included
+      useRootNavigator: useRootNavigator,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.48),

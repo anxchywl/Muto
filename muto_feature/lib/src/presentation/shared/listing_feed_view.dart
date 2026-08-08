@@ -23,8 +23,8 @@ class ListingFeedView extends StatefulWidget {
     required this.labels,
     required this.onOpenListing,
     required this.emptyTitle,
-    required this.emptyMessage,
     required this.emptyIcon,
+    this.emptyMessage,
     this.showFavoriteToggle = true,
   });
 
@@ -32,7 +32,10 @@ class ListingFeedView extends StatefulWidget {
   final ListingLabels labels;
   final void Function(Listing listing) onOpenListing;
   final String emptyTitle;
-  final String emptyMessage;
+
+  /// Left out where the title already says everything, which is most of the
+  /// time — a second sentence under it reads as an apology.
+  final String? emptyMessage;
   final AppIconData emptyIcon;
   final bool showFavoriteToggle;
 
@@ -103,7 +106,14 @@ class _ListingFeedViewState extends State<ListingFeedView> {
           Expanded(
             child: ListView.separated(
               controller: _scroll,
-              padding: AppSpacing.screenPadding,
+              // the last row has to clear the floating action button, or the
+              // bottom of the feed is unreachable
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.df,
+                AppSpacing.df,
+                AppSpacing.df,
+                AppSpacing.xxxl + AppSpacing.xl,
+              ),
               itemCount: feed.items.length + (feed.isLoadingMore ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {

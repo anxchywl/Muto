@@ -49,7 +49,6 @@
   "statusSold": "Сатылды",
   "statusHidden": "Жасырылған",
   "browseEmptyTitle": "Әзірге бос",
-  "browseEmptyMessage": "Ештеңе табылмады. Сүзгіні алып көріңіз.",
   "browseErrorTitle": "Хабарландыруларды жүктеу мүмкін болмады",
   "staleDataNotice": "{time} кезіндегі сақталған нәтижелер көрсетілген",
   "listingSemantics": "{title}, {price}",

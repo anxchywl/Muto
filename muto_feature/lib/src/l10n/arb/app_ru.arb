@@ -49,7 +49,6 @@
   "statusSold": "Продано",
   "statusHidden": "Скрыто",
   "browseEmptyTitle": "Пока пусто",
-  "browseEmptyMessage": "Ничего не найдено. Попробуйте убрать фильтр.",
   "browseErrorTitle": "Не удалось загрузить объявления",
   "staleDataNotice": "Показаны сохранённые результаты от {time}",
   "listingSemantics": "{title}, {price}",

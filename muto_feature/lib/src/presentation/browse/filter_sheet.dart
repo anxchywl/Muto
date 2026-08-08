@@ -21,6 +21,9 @@ Future<ListingQuery?> showFilterSheet(
 }) {
   return AppBottomSheet.show<ListingQuery>(
     context: context,
+    // the feature's tabs live under a floating action button, so a sheet on
+    // the tab's own navigator would open beneath it
+    useRootNavigator: true,
     child: _FilterSheet(initial: current, labels: labels),
   );
 }
@@ -55,14 +58,7 @@ class _FilterSheetState extends State<_FilterSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _strings.filtersTitle,
-            style: AppTextStyles.titleMedium.copyWith(
-              color: isLight
-                  ? AppColors.textPrimary
-                  : AppColors.textPrimaryDark,
-            ),
-          ),
+          SheetTitle(text: _strings.filtersTitle, isLight: isLight),
           const SizedBox(height: AppSpacing.df),
 
           _Group<ListingCategory?>(

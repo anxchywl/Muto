@@ -1,6 +1,7 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:muto_ui/muto_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/listing.dart';
@@ -19,6 +20,7 @@ Future<void> showContactSheet(
   final channels = contactChannelsOf(listing.contact);
   return AppBottomSheet.show<void>(
     context: context,
+    useRootNavigator: true,
     child: _ContactSheet(
       sellerName: listing.sellerDisplayName,
       channels: channels,
@@ -53,13 +55,9 @@ class _ContactSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            strings.contactSheetTitle(sellerName),
-            style: AppTextStyles.titleMedium.copyWith(
-              color: isLight
-                  ? AppColors.textPrimary
-                  : AppColors.textPrimaryDark,
-            ),
+          SheetTitle(
+            text: strings.contactSheetTitle(sellerName),
+            isLight: isLight,
           ),
           const SizedBox(height: AppSpacing.df),
           for (final channel in channels)

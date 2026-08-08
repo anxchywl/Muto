@@ -15,4 +15,5 @@ export 'src/meta_chip.dart';
 export 'src/price_label.dart';
 export 'src/sample_data_banner.dart';
 export 'src/selectable_chip.dart';
+export 'src/sheet_title.dart';
 export 'src/state_message.dart';
