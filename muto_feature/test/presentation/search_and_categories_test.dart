@@ -45,11 +45,21 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
-Future<void> _search(WidgetTester tester, String term) async {
-  await tester.tap(find.byType(TextField).first);
+/// The field replaces the pill strip rather than sitting beside it, so every
+/// search starts by opening it.
+Future<void> _openSearch(WidgetTester tester) async {
+  await tester.tap(find.byType(FilterPill).first);
   await tester.pumpAndSettle();
+}
+
+Future<void> _type(WidgetTester tester, String term) async {
   await tester.enterText(find.byType(TextField).first, term);
   await tester.pumpAndSettle();
+}
+
+Future<void> _search(WidgetTester tester, String term) async {
+  await _openSearch(tester);
+  await _type(tester, term);
   await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
 }
@@ -122,9 +132,8 @@ void main() {
     testWidgets('suggests terms from what is actually listed', (tester) async {
       await _pump(tester);
 
-      await tester.tap(find.byType(TextField).first);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'lam');
+      await _openSearch(tester);
+      await _type(tester, 'lam');
       // past the debounce, which no amount of settling reaches on its own
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
@@ -139,9 +148,8 @@ void main() {
       // the feed narrowed, and the field kept what was typed
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);
 
-      await tester.tap(find.byType(TextField).first);
-      await tester.enterText(find.byType(TextField).first, '');
-      await tester.pumpAndSettle();
+      await _openSearch(tester);
+      await _type(tester, '');
 
       expect(find.text('Recent searches'), findsOneWidget);
       expect(find.text('lamp'), findsWidgets);
@@ -150,12 +158,9 @@ void main() {
     testWidgets('does not remember what was only typed', (tester) async {
       await _pump(tester);
 
-      await tester.tap(find.byType(TextField).first);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'guitar');
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, '');
-      await tester.pumpAndSettle();
+      await _openSearch(tester);
+      await _type(tester, 'guitar');
+      await _type(tester, '');
 
       expect(find.text('Recent searches'), findsNothing);
     });
@@ -166,9 +171,8 @@ void main() {
       await _pump(tester);
       await _search(tester, 'lamp');
 
-      await tester.tap(find.byType(TextField).first);
-      await tester.enterText(find.byType(TextField).first, '');
-      await tester.pumpAndSettle();
+      await _openSearch(tester);
+      await _type(tester, '');
       await tester.tap(find.text('lamp').last);
       await tester.pumpAndSettle();
 
@@ -180,9 +184,8 @@ void main() {
       await _pump(tester);
       await _search(tester, 'lamp');
 
-      await tester.tap(find.byType(TextField).first);
-      await tester.enterText(find.byType(TextField).first, '');
-      await tester.pumpAndSettle();
+      await _openSearch(tester);
+      await _type(tester, '');
       await tester.tap(find.byTooltip('Remove lamp from recent searches'));
       await tester.pumpAndSettle();
 

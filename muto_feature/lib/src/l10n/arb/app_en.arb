@@ -27,15 +27,14 @@
   "actionRetry": "Retry",
   "actionCancel": "Cancel",
   "actionClose": "Close",
-  "actionApply": "Apply",
-  "actionReset": "Reset",
+  "actionClearFilters": "Clear all",
+  "closeSearchSemantics": "Close search",
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your network and try again.",
   "searchHint": "Search listings",
   "@searchHint": {
     "description": "Placeholder in the browse search field"
   },
-  "filtersTitle": "Filters",
   "filterCategory": "Category",
   "filterKind": "Type",
   "filterCondition": "Condition",

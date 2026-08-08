@@ -8,6 +8,7 @@
 /// it looks belongs here.
 library;
 
+export 'src/filter_pill.dart';
 export 'src/listing_card.dart';
 export 'src/listing_image.dart';
 export 'src/listing_skeleton.dart';

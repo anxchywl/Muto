@@ -13,8 +13,8 @@ import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
 import '../search/search_panel.dart';
 import '../shared/listing_feed_view.dart';
+import 'browse_controls.dart';
 import 'category_strip.dart';
-import 'filter_sheet.dart';
 
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key, required this.onOpenListing});
@@ -31,15 +31,22 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   ListingQuery _query = const ListingQuery();
   Timer? _debounce;
-  bool _isSearching = false;
+
+  /// The strip is the search field's other half: opening search replaces it,
+  /// and closing brings it back.
+  bool _searching = false;
+
+  /// Recents and suggestions belong to the moment of typing, not to the search
+  /// itself, so they follow the caret rather than the field being open.
+  bool _typing = false;
 
   @override
   void initState() {
     super.initState();
-    _searchFocus.addListener(_onFocusChanged);
     // the panel and the clear control both depend on whether anything has been
     // typed, which the field alone does not tell this screen
     _search.addListener(_onTextChanged);
+    _searchFocus.addListener(_onFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _apply();
@@ -74,12 +81,35 @@ class _BrowseScreenState extends State<BrowseScreen> {
     unawaited(scope.browse.load());
   }
 
-  void _onFocusChanged() {
-    setState(() => _isSearching = _searchFocus.hasFocus);
-  }
-
   void _onTextChanged() {
     setState(() {});
+  }
+
+  void _onFocusChanged() {
+    setState(() => _typing = _searchFocus.hasFocus);
+  }
+
+  void _onQueryChanged(ListingQuery next) {
+    if (next.text != _query.text && (next.text ?? '').isEmpty) {
+      _search.clear();
+    }
+    setState(() => _query = next);
+    _apply();
+  }
+
+  void _openSearch() {
+    setState(() => _searching = true);
+    // the field is only mounted into view by this frame, so the caret has to
+    // wait for it
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocus.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    _debounce?.cancel();
+    _searchFocus.unfocus();
+    setState(() => _searching = false);
   }
 
   void _onSearchChanged(String raw) {
@@ -114,23 +144,11 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   void _onCategorySelected(ListingCategory? category) {
-    setState(() {
-      _query = category == null
+    _onQueryChanged(
+      category == null
           ? _query.copyWith(clearCategory: true)
-          : _query.copyWith(category: category);
-    });
-    _apply();
-  }
-
-  Future<void> _openFilters(ListingLabels labels) async {
-    final next = await showFilterSheet(
-      context,
-      current: _query,
-      labels: labels,
+          : _query.copyWith(category: category),
     );
-    if (next == null || !mounted) return;
-    setState(() => _query = next);
-    _apply();
   }
 
   @override
@@ -147,25 +165,17 @@ class _BrowseScreenState extends State<BrowseScreen> {
         bottom: false,
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.df,
-                AppSpacing.sm,
-                AppSpacing.df,
-                AppSpacing.sm,
-              ),
-              child: GlobalSearchBar(
-                controller: _search,
-                focusNode: _searchFocus,
-                hint: strings.searchHint,
-                onChanged: _onSearchChanged,
-                onSubmitted: _onSearchSubmitted,
-                onClear: () => _onSearchChanged(''),
-                clearTooltip: strings.clearSearchSemantics,
-                showFilterButton: true,
-                filterTooltip: strings.openFiltersSemantics,
-                onFilterPressed: () => unawaited(_openFilters(labels)),
-              ),
+            BrowseControls(
+              query: _query,
+              labels: labels,
+              searching: _searching,
+              searchController: _search,
+              searchFocus: _searchFocus,
+              onQueryChanged: _onQueryChanged,
+              onSearchOpened: _openSearch,
+              onSearchClosed: _closeSearch,
+              onSearchChanged: _onSearchChanged,
+              onSearchSubmitted: _onSearchSubmitted,
             ),
             CategoryStrip(
               selected: _query.category,
@@ -190,7 +200,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                       emptyTitle: strings.browseEmptyTitle,
                     ),
                   ),
-                  if (_isSearching)
+                  if (_typing)
                     Positioned.fill(
                       child: SearchPanel(
                         controller: scope.search,

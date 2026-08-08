@@ -173,71 +173,98 @@ void main() {
   });
 
   group('filters', () {
-    testWidgets('narrows the feed to one category', (tester) async {
+    testWidgets('narrows the feed to one category from the row', (
+      tester,
+    ) async {
       await _pumpFeature(tester);
 
-      await tester.tap(find.byTooltip('Open filters'));
-      await tester.pumpAndSettle();
-      expect(find.text('Filters'), findsOneWidget);
-
-      await tester.tap(find.text('Textbooks').last);
-      await tester.tap(find.text('Apply'));
+      await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
 
       expect(find.text('University Physics, volume 1'), findsOneWidget);
       expect(find.text('Small study lamp, clip-on'), findsNothing);
     });
 
-    testWidgets('narrows the feed to giveaways', (tester) async {
+    testWidgets('narrows the feed to giveaways from the type pill', (
+      tester,
+    ) async {
       await _pumpFeature(tester);
 
-      await tester.tap(find.byTooltip('Open filters'));
+      await tester.tap(find.text('Type'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Free').last);
-      await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
       expect(find.text('Free'), findsWidgets);
       expect(find.text('University Physics, volume 1'), findsNothing);
     });
 
+    testWidgets('the pill names what it is narrowed to', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.text('Condition'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Like new').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Condition'), findsNothing);
+      expect(find.text('Like new'), findsWidgets);
+    });
+
     testWidgets('says so when nothing matches', (tester) async {
       await _pumpFeature(tester);
 
-      await tester.tap(find.byTooltip('Open filters'));
+      await tester.tap(find.text('Tickets'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Tickets').last);
+      await tester.tap(find.text('Type'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Swap').last);
-      await tester.tap(find.text('Apply'));
       await tester.pumpAndSettle();
 
       expect(find.text('Nothing here yet'), findsOneWidget);
     });
 
-    testWidgets('resetting brings everything back', (tester) async {
+    testWidgets('clearing brings everything back', (tester) async {
       await _pumpFeature(tester);
 
-      await tester.tap(find.byTooltip('Open filters'));
+      await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Textbooks').last);
-      await tester.tap(find.text('Reset'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Apply'));
+      expect(find.text('Small study lamp, clip-on'), findsNothing);
+
+      await tester.tap(find.text('Clear all'));
       await tester.pumpAndSettle();
 
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);
+      expect(find.text('Clear all'), findsNothing);
     });
 
-    testWidgets('translates the filter sheet', (tester) async {
-      await _pumpFeature(tester, locale: const Locale('kk'));
+    testWidgets('offers nothing to clear until something is narrowed', (
+      tester,
+    ) async {
+      await _pumpFeature(tester);
+      expect(find.text('Clear all'), findsNothing);
+    });
 
-      await tester.tap(find.byTooltip('Сүзгілерді ашу'));
+    testWidgets('sorts by price without leaving the feed', (tester) async {
+      await _pumpFeature(tester);
+
+      await tester.tap(find.bySemanticsLabel('Sort'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Price, low to high'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Сүзгілер'), findsOneWidget);
-      // the category row behind the sheet carries the same word
-      expect(find.text('Оқулықтар'), findsNWidgets(2));
-      expect(find.text('Қолдану'), findsOneWidget);
+      expect(find.byType(ListingCard), findsWidgets);
+      expect(find.text('Clear all'), findsOneWidget);
+    });
+
+    testWidgets('translates the pills and their sheets', (tester) async {
+      await _pumpFeature(tester, locale: const Locale('kk'));
+
+      await tester.tap(find.text('Түрі'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Кез келген'), findsOneWidget);
+      expect(find.text('Тегін'), findsWidgets);
     });
   });
 
