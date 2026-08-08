@@ -109,7 +109,7 @@ void main() {
 
       final chip = find.ancestor(
         of: find.text('Textbooks'),
-        matching: find.byType(SelectableChip),
+        matching: find.byType(FilterPill),
       );
       expect(tester.getSemantics(chip).flagsCollection.isButton, isTrue);
       expect(

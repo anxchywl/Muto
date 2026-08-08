@@ -27,7 +27,7 @@ class CategoryStrip extends StatelessWidget {
     final strings = labels.strings;
 
     return SizedBox(
-      height: SelectableChip.minHeight,
+      height: FilterPill.height,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.df),
@@ -35,16 +35,16 @@ class CategoryStrip extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
           if (index == 0) {
-            return SelectableChip(
+            return FilterPill(
               label: strings.categoryAll,
-              selected: selected == null,
+              highlighted: selected == null,
               onTap: () => onSelected(null),
             );
           }
           final category = ListingCategory.values[index - 1];
-          return SelectableChip(
+          return FilterPill(
             label: labels.category(category),
-            selected: selected == category,
+            highlighted: selected == category,
             onTap: () => onSelected(selected == category ? null : category),
           );
         },
