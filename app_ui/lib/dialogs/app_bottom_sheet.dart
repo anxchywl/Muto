@@ -170,7 +170,7 @@ class _Sheet<T> extends StatelessWidget {
               child: SingleChildScrollView(child: child),
             ),
 
-            SizedBox(height: mq.padding.bottom + 8),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -195,7 +195,6 @@ class _SelectionSheet<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
     final surface = isLight ? Colors.white : const Color(0xFF1C1C1E);
     final textPrimary = isLight ? const Color(0xFF0A0A1A) : Colors.white;
@@ -263,7 +262,7 @@ class _SelectionSheet<T> extends StatelessWidget {
               );
             }),
 
-            SizedBox(height: mq.padding.bottom + 12),
+            const SizedBox(height: 12),
           ],
         ),
       ),

@@ -48,7 +48,21 @@ Future<void> _pump(
 /// The field replaces the pill strip rather than sitting beside it, so every
 /// search starts by opening it.
 Future<void> _openSearch(WidgetTester tester) async {
-  await tester.tap(find.byType(FilterPill).first);
+  // both halves of the cross-fade are in the tree, so the pill is identified by
+  // what it says rather than by where it sits
+  await tester.tap(
+    find.byWidgetPredicate(
+      (widget) =>
+          widget is FilterPill && widget.semanticLabel == 'Search listings',
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Puts the caret back in a field that is already open, which is what brings
+/// the recent searches back.
+Future<void> _focusField(WidgetTester tester) async {
+  await tester.tap(find.byType(TextField).first);
   await tester.pumpAndSettle();
 }
 
@@ -74,12 +88,12 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('categories', () {
-    testWidgets('narrow the feed from the row, without opening filters', (
-      tester,
-    ) async {
+    testWidgets('narrow the feed from the pill', (tester) async {
       await _pump(tester);
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);
 
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
 
@@ -90,42 +104,55 @@ void main() {
       );
     });
 
-    testWidgets('let go of the choice when it is tapped again', (tester) async {
+    testWidgets('let go of the choice through "any"', (tester) async {
       await _pump(tester);
 
-      await tester.tap(find.text('Textbooks'));
+      await tester.tap(find.text('Category'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Textbooks').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Any'));
       await tester.pumpAndSettle();
 
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);
+      expect(find.text('Category'), findsOneWidget);
     });
 
-    testWidgets('are announced as a button, and as chosen once chosen', (
-      tester,
-    ) async {
-      final handle = tester.ensureSemantics();
-      await _pump(tester);
+    testWidgets(
+      'the pill is announced as a button, and as chosen once chosen',
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        await _pump(tester);
 
-      final chip = find.ancestor(
-        of: find.text('Textbooks'),
-        matching: find.byType(FilterPill),
-      );
-      expect(tester.getSemantics(chip).flagsCollection.isButton, isTrue);
-      expect(
-        tester.getSemantics(chip).flagsCollection.isSelected,
-        Tristate.isFalse,
-      );
+        final pill = find.ancestor(
+          of: find.text('Category'),
+          matching: find.byType(FilterPill),
+        );
+        expect(tester.getSemantics(pill).flagsCollection.isButton, isTrue);
+        expect(
+          tester.getSemantics(pill).flagsCollection.isSelected,
+          Tristate.isFalse,
+        );
 
-      await tester.tap(chip);
-      await tester.pumpAndSettle();
+        await tester.tap(pill);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Sports'));
+        await tester.pumpAndSettle();
 
-      expect(
-        tester.getSemantics(chip).flagsCollection.isSelected,
-        Tristate.isTrue,
-      );
-      handle.dispose();
-    });
+        final chosen = find.ancestor(
+          of: find.text('Sports'),
+          matching: find.byType(FilterPill),
+        );
+        expect(
+          tester.getSemantics(chosen).flagsCollection.isSelected,
+          Tristate.isTrue,
+        );
+        handle.dispose();
+      },
+    );
   });
 
   group('search', () {
@@ -148,7 +175,7 @@ void main() {
       // the feed narrowed, and the field kept what was typed
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);
 
-      await _openSearch(tester);
+      await _focusField(tester);
       await _type(tester, '');
 
       expect(find.text('Recent searches'), findsOneWidget);
@@ -171,7 +198,7 @@ void main() {
       await _pump(tester);
       await _search(tester, 'lamp');
 
-      await _openSearch(tester);
+      await _focusField(tester);
       await _type(tester, '');
       await tester.tap(find.text('lamp').last);
       await tester.pumpAndSettle();
@@ -184,7 +211,7 @@ void main() {
       await _pump(tester);
       await _search(tester, 'lamp');
 
-      await _openSearch(tester);
+      await _focusField(tester);
       await _type(tester, '');
       await tester.tap(find.byTooltip('Remove lamp from recent searches'));
       await tester.pumpAndSettle();

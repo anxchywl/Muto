@@ -173,11 +173,11 @@ void main() {
   });
 
   group('filters', () {
-    testWidgets('narrows the feed to one category from the row', (
-      tester,
-    ) async {
+    testWidgets('narrows the feed to one category', (tester) async {
       await _pumpFeature(tester);
 
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
 
@@ -214,6 +214,8 @@ void main() {
     testWidgets('says so when nothing matches', (tester) async {
       await _pumpFeature(tester);
 
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Tickets'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Type'));
@@ -227,6 +229,8 @@ void main() {
     testWidgets('clearing brings everything back', (tester) async {
       await _pumpFeature(tester);
 
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
       expect(find.text('Small study lamp, clip-on'), findsNothing);

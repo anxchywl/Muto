@@ -54,32 +54,23 @@ class _ChoiceSheet<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.df,
-              AppSpacing.sm,
-              AppSpacing.df,
-              AppSpacing.sm,
-            ),
-            child: SheetTitle(text: title, isLight: isLight),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: SheetTitle(text: title, isLight: isLight),
+        ),
+        for (final choice in choices)
+          _ChoiceRow<T>(
+            label: choice.label,
+            chosen: choice.value == selected,
+            isLight: isLight,
+            onTap: () =>
+                Navigator.of(context).pop<_Picked<T>>(_Picked<T>(choice.value)),
           ),
-          for (final choice in choices)
-            _ChoiceRow<T>(
-              label: choice.label,
-              chosen: choice.value == selected,
-              isLight: isLight,
-              onTap: () => Navigator.of(
-                context,
-              ).pop<_Picked<T>>(_Picked<T>(choice.value)),
-            ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -103,31 +94,53 @@ class _ChoiceRow<T> extends StatelessWidget {
         ? (isLight ? AppColors.primary : AppColors.primaryAccentDark)
         : (isLight ? AppColors.textPrimary : AppColors.textPrimaryDark);
 
-    return Semantics(
-      button: true,
-      selected: chosen,
-      excludeSemantics: true,
-      label: label,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.df,
-            vertical: AppSpacing.md,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: foreground,
-                    fontWeight: chosen ? FontWeight.w600 : FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 2,
+      ),
+      child: Semantics(
+        button: true,
+        selected: chosen,
+        excludeSemantics: true,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: AppSpacing.borderRadiusMd,
+          // the chosen row is filled rather than only tinted, so the answer is
+          // legible without hunting for the check
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: chosen
+                  ? (isLight
+                        ? AppColors.primaryLight
+                        : AppColors.primaryLightDark)
+                  : Colors.transparent,
+              borderRadius: AppSpacing.borderRadiusMd,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: foreground,
+                      fontWeight: chosen ? FontWeight.w600 : FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              if (chosen) AppIcon(AppIcons.check, size: 18, color: foreground),
-            ],
+                if (chosen)
+                  AppIcon(AppIcons.check, size: 18, color: foreground),
+              ],
+            ),
           ),
         ),
       ),

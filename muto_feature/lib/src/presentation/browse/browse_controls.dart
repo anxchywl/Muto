@@ -2,6 +2,7 @@ import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:muto_ui/muto_ui.dart';
 
+import '../../domain/entities/listing_category.dart';
 import '../../domain/entities/listing_condition.dart';
 import '../../domain/entities/listing_kind.dart';
 import '../../domain/repositories/listing_repository.dart';
@@ -83,6 +84,14 @@ class BrowseControls extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               FilterPill(
+                label: query.category == null
+                    ? strings.filterCategory
+                    : labels.category(query.category!),
+                highlighted: query.category != null,
+                onTap: () => _pickCategory(context),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              FilterPill(
                 label: query.kind == null
                     ? strings.filterKind
                     : labels.kind(query.kind!),
@@ -127,11 +136,13 @@ class BrowseControls extends StatelessWidget {
                   clearTooltip: strings.clearSearchSemantics,
                 ),
               ),
-              const SizedBox(width: AppSpacing.xs),
-              IconButton(
-                icon: const AppIcon(AppIcons.close, size: 20),
-                tooltip: strings.closeSearchSemantics,
-                onPressed: onSearchClosed,
+              const SizedBox(width: AppSpacing.sm),
+              // a pill rather than an icon button, so both halves of the
+              // cross-fade are exactly as tall as each other
+              FilterPill(
+                icon: AppIcons.close,
+                semanticLabel: strings.closeSearchSemantics,
+                onTap: onSearchClosed,
               ),
             ],
           ),
@@ -159,6 +170,24 @@ class BrowseControls extends StatelessWidget {
     );
     if (picked == null) return;
     onQueryChanged(query.copyWith(sort: picked));
+  }
+
+  Future<void> _pickCategory(BuildContext context) async {
+    final strings = labels.strings;
+    final picked = await _pickOptional<ListingCategory>(
+      context,
+      title: strings.filterCategory,
+      anyLabel: strings.filterAny,
+      selected: query.category,
+      values: ListingCategory.values,
+      labelOf: labels.category,
+    );
+    if (picked == null) return;
+    onQueryChanged(
+      picked.value == null
+          ? query.copyWith(clearCategory: true)
+          : query.copyWith(category: picked.value),
+    );
   }
 
   Future<void> _pickKind(BuildContext context) async {

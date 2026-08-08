@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import '../../application/cache/cache_keys.dart';
 import '../../application/muto_scope.dart';
 import '../../domain/entities/listing.dart';
-import '../../domain/entities/listing_category.dart';
 import '../../domain/repositories/listing_repository.dart';
 import '../../domain/validation/text_rules.dart';
 import '../../l10n/generated/muto_localizations.dart';
@@ -14,7 +13,6 @@ import '../formatting/listing_labels.dart';
 import '../search/search_panel.dart';
 import '../shared/listing_feed_view.dart';
 import 'browse_controls.dart';
-import 'category_strip.dart';
 
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key, required this.onOpenListing});
@@ -143,14 +141,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
     }
   }
 
-  void _onCategorySelected(ListingCategory? category) {
-    _onQueryChanged(
-      category == null
-          ? _query.copyWith(clearCategory: true)
-          : _query.copyWith(category: category),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final scope = MutoScope.of(context);
@@ -177,12 +167,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
               onSearchChanged: _onSearchChanged,
               onSearchSubmitted: _onSearchSubmitted,
             ),
-            CategoryStrip(
-              selected: _query.category,
-              labels: labels,
-              onSelected: _onCategorySelected,
-            ),
-            const SizedBox(height: AppSpacing.sm),
             Expanded(
               // the panel covers the feed instead of replacing it, so
               // dismissing the field puts the reader back where they were
