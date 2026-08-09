@@ -226,29 +226,6 @@ void main() {
       expect(find.text('Nothing here yet'), findsOneWidget);
     });
 
-    testWidgets('clearing brings everything back', (tester) async {
-      await _pumpFeature(tester);
-
-      await tester.tap(find.text('Category'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Textbooks'));
-      await tester.pumpAndSettle();
-      expect(find.text('Small study lamp, clip-on'), findsNothing);
-
-      await tester.tap(find.text('Clear all'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Small study lamp, clip-on'), findsOneWidget);
-      expect(find.text('Clear all'), findsNothing);
-    });
-
-    testWidgets('offers nothing to clear until something is narrowed', (
-      tester,
-    ) async {
-      await _pumpFeature(tester);
-      expect(find.text('Clear all'), findsNothing);
-    });
-
     testWidgets('sorts by price without leaving the feed', (tester) async {
       await _pumpFeature(tester);
 
@@ -258,7 +235,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ListingCard), findsWidgets);
-      expect(find.text('Clear all'), findsOneWidget);
+      // the pill stays highlighted, which is the only sign a sort is applied
+      expect(find.text('Price, low to high'), findsNothing);
     });
 
     testWidgets('translates the pills and their sheets', (tester) async {
@@ -267,7 +245,7 @@ void main() {
       await tester.tap(find.text('Түрі'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Кез келген'), findsOneWidget);
+      expect(find.text('Сатылады'), findsOneWidget);
       expect(find.text('Тегін'), findsWidgets);
     });
   });

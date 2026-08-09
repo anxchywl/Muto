@@ -39,13 +39,6 @@ class BrowseControls extends StatelessWidget {
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSearchSubmitted;
 
-  bool get _anyFilterActive =>
-      query.kind != null ||
-      query.condition != null ||
-      query.category != null ||
-      query.sort != ListingSort.newest ||
-      (query.text?.isNotEmpty ?? false);
-
   @override
   Widget build(BuildContext context) {
     final strings = labels.strings;
@@ -106,55 +99,21 @@ class BrowseControls extends StatelessWidget {
                 highlighted: query.condition != null,
                 onTap: () => _pickCondition(context),
               ),
-              if (_anyFilterActive) ...[
-                const SizedBox(width: AppSpacing.sm),
-                FilterPill(
-                  icon: AppIcons.close,
-                  label: strings.actionClearFilters,
-                  highlighted: true,
-                  onTap: _clearAll,
-                ),
-              ],
             ],
           ),
         ),
-        secondChild: SizedBox(
-          height: FilterPill.height,
-          child: Row(
-            children: [
-              Expanded(
-                child: GlobalSearchBar(
-                  controller: searchController,
-                  focusNode: searchFocus,
-                  hint: strings.searchHint,
-                  // both halves of the cross-fade are built, so autofocus here
-                  // would take the caret while the strip is still showing
-                  maxLength: 80,
-                  onChanged: onSearchChanged,
-                  onSubmitted: onSearchSubmitted,
-                  onClear: () => onSearchChanged(''),
-                  clearTooltip: strings.clearSearchSemantics,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // a pill rather than an icon button, so both halves of the
-              // cross-fade are exactly as tall as each other
-              FilterPill(
-                icon: AppIcons.close,
-                semanticLabel: strings.closeSearchSemantics,
-                onTap: onSearchClosed,
-              ),
-            ],
-          ),
+        secondChild: FeedSearchField(
+          controller: searchController,
+          focusNode: searchFocus,
+          hint: strings.searchHint,
+          onChanged: onSearchChanged,
+          onSubmitted: onSearchSubmitted,
+          onClose: onSearchClosed,
+          clearLabel: strings.clearSearchSemantics,
+          closeLabel: strings.closeSearchSemantics,
         ),
       ),
     );
-  }
-
-  void _clearAll() {
-    searchController.clear();
-    onSearchClosed();
-    onQueryChanged(const ListingQuery());
   }
 
   Future<void> _pickSort(BuildContext context) async {
@@ -168,8 +127,9 @@ class BrowseControls extends StatelessWidget {
           SheetChoice<ListingSort>(label: labels.sort(sort), value: sort),
       ],
     );
-    if (picked == null) return;
-    onQueryChanged(query.copyWith(sort: picked));
+    final sort = picked?.value;
+    if (sort == null) return;
+    onQueryChanged(query.copyWith(sort: sort));
   }
 
   Future<void> _pickCategory(BuildContext context) async {
@@ -177,7 +137,6 @@ class BrowseControls extends StatelessWidget {
     final picked = await _pickOptional<ListingCategory>(
       context,
       title: strings.filterCategory,
-      anyLabel: strings.filterAny,
       selected: query.category,
       values: ListingCategory.values,
       labelOf: labels.category,
@@ -195,7 +154,6 @@ class BrowseControls extends StatelessWidget {
     final picked = await _pickOptional<ListingKind>(
       context,
       title: strings.filterKind,
-      anyLabel: strings.filterAny,
       selected: query.kind,
       values: ListingKind.values,
       labelOf: labels.kind,
@@ -213,7 +171,6 @@ class BrowseControls extends StatelessWidget {
     final picked = await _pickOptional<ListingCondition>(
       context,
       title: strings.filterCondition,
-      anyLabel: strings.filterAny,
       selected: query.condition,
       values: ListingCondition.values,
       labelOf: labels.condition,
@@ -226,39 +183,29 @@ class BrowseControls extends StatelessWidget {
     );
   }
 
-  /// Wraps the answer, because a filter that was set back to "any" and a sheet
-  /// that was dismissed both come back as null otherwise.
+  /// Wraps the answer, because a filter that was let go of and a sheet that was
+  /// dismissed both come back as null otherwise.
+  ///
+  /// There is no "any" row: choosing the value that is already chosen is what
+  /// lets it go, the same gesture the pill itself would need.
   Future<({T? value})?> _pickOptional<T extends Object>(
     BuildContext context, {
     required String title,
-    required String anyLabel,
     required T? selected,
     required List<T> values,
     required String Function(T) labelOf,
   }) async {
-    const anySentinel = _AnyChoice();
-    final picked = await showChoiceSheet<Object>(
+    final picked = await showChoiceSheet<T>(
       context,
       title: title,
-      selected: selected ?? anySentinel,
+      selected: selected,
       choices: [
-        SheetChoice<Object>(label: anyLabel, value: anySentinel),
         for (final value in values)
-          SheetChoice<Object>(label: labelOf(value), value: value),
+          SheetChoice<T>(label: labelOf(value), value: value),
       ],
+      deselectable: true,
     );
     if (picked == null) return null;
-    return (value: picked == anySentinel ? null : picked as T);
+    return (value: picked.value);
   }
-}
-
-/// Stands in for "no filter" inside a sheet that picks one value.
-final class _AnyChoice {
-  const _AnyChoice();
-
-  @override
-  bool operator ==(Object other) => other is _AnyChoice;
-
-  @override
-  int get hashCode => 0;
 }

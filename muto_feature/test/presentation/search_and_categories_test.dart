@@ -104,17 +104,20 @@ void main() {
       );
     });
 
-    testWidgets('let go of the choice through "any"', (tester) async {
+    testWidgets('let go of the choice by choosing it again', (tester) async {
       await _pump(tester);
 
       await tester.tap(find.text('Category'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
+      expect(find.text('Small study lamp, clip-on'), findsNothing);
 
-      await tester.tap(find.text('Textbooks').first);
+      // the pill now says Textbooks; opening it and choosing the same value
+      // is what clears the filter
+      await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Any'));
+      await tester.tap(find.text('Textbooks').last);
       await tester.pumpAndSettle();
 
       expect(find.text('Small study lamp, clip-on'), findsOneWidget);

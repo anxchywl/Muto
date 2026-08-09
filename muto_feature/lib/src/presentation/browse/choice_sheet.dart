@@ -16,25 +16,33 @@ final class SheetChoice<T> {
 ///
 /// Every filter in the strip narrows on a single value, so this is the whole
 /// vocabulary the sheets need: a title, a list, and the one that is chosen.
-Future<T?> showChoiceSheet<T>(
+/// [deselectable] makes the chosen row a toggle: tapping it answers with
+/// nothing chosen, which is how a filter is let go of without a reset control.
+Future<Picked<T>?> showChoiceSheet<T>(
   BuildContext context, {
   required String title,
   required List<SheetChoice<T>> choices,
   required T? selected,
+  bool deselectable = false,
 }) {
-  return AppBottomSheet.show<_Picked<T>>(
+  return AppBottomSheet.show<Picked<T>>(
     context: context,
     // the tabs sit under a floating action button, which would otherwise
     // float above the sheet
     useRootNavigator: true,
-    child: _ChoiceSheet<T>(title: title, choices: choices, selected: selected),
-  ).then((picked) => picked?.value);
+    child: _ChoiceSheet<T>(
+      title: title,
+      choices: choices,
+      selected: selected,
+      deselectable: deselectable,
+    ),
+  );
 }
 
-/// Wraps the answer so choosing the unset option can be told apart from
-/// dismissing the sheet, since both would otherwise be null.
-final class _Picked<T> {
-  const _Picked(this.value);
+/// Wraps the answer so letting a filter go can be told apart from dismissing
+/// the sheet, since both would otherwise be null.
+final class Picked<T> {
+  const Picked(this.value);
 
   final T? value;
 }
@@ -44,11 +52,13 @@ class _ChoiceSheet<T> extends StatelessWidget {
     required this.title,
     required this.choices,
     required this.selected,
+    required this.deselectable,
   });
 
   final String title;
   final List<SheetChoice<T>> choices;
   final T? selected;
+  final bool deselectable;
 
   @override
   Widget build(BuildContext context) {
@@ -67,8 +77,12 @@ class _ChoiceSheet<T> extends StatelessWidget {
             label: choice.label,
             chosen: choice.value == selected,
             isLight: isLight,
-            onTap: () =>
-                Navigator.of(context).pop<_Picked<T>>(_Picked<T>(choice.value)),
+            onTap: () {
+              final chosen = choice.value == selected;
+              Navigator.of(context).pop<Picked<T>>(
+                Picked<T>(chosen && deselectable ? null : choice.value),
+              );
+            },
           ),
       ],
     );

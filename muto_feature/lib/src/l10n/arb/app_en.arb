@@ -27,7 +27,6 @@
   "actionRetry": "Retry",
   "actionCancel": "Cancel",
   "actionClose": "Close",
-  "actionClearFilters": "Clear all",
   "closeSearchSemantics": "Close search",
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your network and try again.",
@@ -39,10 +38,6 @@
   "filterKind": "Type",
   "filterCondition": "Condition",
   "filterSort": "Sort",
-  "filterAny": "Any",
-  "@filterAny": {
-    "description": "Option meaning no restriction on a filter"
-  },
   "categoryAll": "All",
   "@categoryAll": {
     "description": "First chip in the category row, meaning no category chosen"
