@@ -184,22 +184,25 @@ class _BottomBar extends StatelessWidget {
           ),
         ),
       ),
-      padding: EdgeInsets.only(
+      // the home-indicator inset belongs to each destination rather than to
+      // the bar, so a thumb landing low still lands on something
+      padding: const EdgeInsets.only(
         left: AppSpacing.df,
         right: AppSpacing.df,
         top: AppSpacing.xs,
-        bottom: MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
       ),
       child: Row(
+        // sized to content rather than split evenly, so the chosen
+        // destination can take the room it needs and the others give it up
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           for (var i = 0; i < labels.length; i++)
-            Expanded(
-              child: _NavButton(
-                icon: icons[i],
-                label: labels[i],
-                selected: i == current,
-                onTap: () => onSelected(i),
-              ),
+            _NavButton(
+              icon: icons[i],
+              label: labels[i],
+              selected: i == current,
+              bottomInset: MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
+              onTap: () => onSelected(i),
             ),
         ],
       ),
@@ -212,18 +215,26 @@ class _NavButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.selected,
+    required this.bottomInset,
     required this.onTap,
   });
 
   final AppIconData icon;
   final String label;
   final bool selected;
+
+  /// Sits inside the tap target, under the pill, so the strip above the home
+  /// indicator is not dead space.
+  final double bottomInset;
+
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final accent = selected ? AppColors.primary : AppColors.iconSecondary;
+    final accent = selected
+        ? (isLight ? AppColors.primary : AppColors.primaryAccentDark)
+        : AppColors.iconSecondary;
 
     return Semantics(
       label: label,
@@ -232,43 +243,56 @@ class _NavButton extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusMd,
+        borderRadius: AppSpacing.borderRadiusRound,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // the pill is what carries the selection; the colour alone would
-              // be a weak signal at this size
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? (isLight
-                            ? AppColors.primaryLight
-                            : AppColors.primaryLightDark)
-                      : Colors.transparent,
-                  borderRadius: AppSpacing.borderRadiusMd,
-                ),
-                child: AppIcon(icon, size: 22, color: accent),
+          padding: EdgeInsets.only(bottom: bottomInset),
+          // the chosen destination widens to take its label in; the others give
+          // the room back and keep only their icon
+          child: AnimatedContainer(
+            duration: _duration,
+            curve: Curves.easeOutCubic,
+            constraints: const BoxConstraints(minHeight: 44),
+            padding: EdgeInsets.symmetric(
+              horizontal: selected ? AppSpacing.df : AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: selected
+                  ? (isLight
+                        ? AppColors.primaryLight
+                        : AppColors.primaryLightDark)
+                  : Colors.transparent,
+              borderRadius: AppSpacing.borderRadiusRound,
+            ),
+            child: AnimatedSize(
+              duration: _duration,
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppIcon(icon, size: 22, color: accent),
+                  if (selected) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelMedium.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: accent,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+
+/// Long enough to read as movement, short enough not to be waited on.
+const Duration _duration = Duration(milliseconds: 220);

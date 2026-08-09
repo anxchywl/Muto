@@ -133,20 +133,26 @@ void main() {
   });
 
   testWidgets('translates the whole surface into Russian', (tester) async {
+    final handle = tester.ensureSemantics();
     await _pumpFeature(tester, locale: const Locale('ru'));
 
     expect(find.text('Каталог'), findsWidgets);
-    expect(find.text('Избранное'), findsOneWidget);
+    // only the chosen destination shows its label; the rest carry it in
+    // semantics alone
+    expect(find.bySemanticsLabel('Избранное'), findsOneWidget);
     expect(find.text('Тестовые данные'), findsOneWidget);
     expect(find.text('Бесплатно'), findsWidgets);
+    handle.dispose();
   });
 
   testWidgets('translates the whole surface into Kazakh', (tester) async {
+    final handle = tester.ensureSemantics();
     await _pumpFeature(tester, locale: const Locale('kk'));
 
-    expect(find.text('Таңдаулылар'), findsOneWidget);
+    expect(find.bySemanticsLabel('Таңдаулылар'), findsOneWidget);
     expect(find.text('Сынақ деректері'), findsOneWidget);
     expect(find.text('Тегін'), findsWidgets);
+    handle.dispose();
   });
 
   testWidgets('announces each listing as one thing to a screen reader', (
