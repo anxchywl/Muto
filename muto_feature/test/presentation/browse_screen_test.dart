@@ -199,6 +199,38 @@ void main() {
       expect(find.text('University Physics, volume 1'), findsNothing);
     });
 
+    testWidgets('the cross on a pill lets go of what it narrowed to', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpFeature(tester);
+
+      await tester.tap(find.text('Category'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Textbooks'));
+      await tester.pumpAndSettle();
+      expect(find.text('Small study lamp, clip-on'), findsNothing);
+
+      await tester.tap(find.bySemanticsLabel('Clear Category'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Category'), findsOneWidget);
+      expect(find.text('Small study lamp, clip-on'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('offers no cross until a pill narrows something', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpFeature(tester);
+
+      expect(find.bySemanticsLabel('Clear Category'), findsNothing);
+      expect(find.bySemanticsLabel('Clear Type'), findsNothing);
+      expect(find.bySemanticsLabel('Clear Condition'), findsNothing);
+      handle.dispose();
+    });
+
     testWidgets('the pill names what it is narrowed to', (tester) async {
       await _pumpFeature(tester);
 

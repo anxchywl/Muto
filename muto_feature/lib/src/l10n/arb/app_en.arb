@@ -28,6 +28,15 @@
   "actionCancel": "Cancel",
   "actionClose": "Close",
   "closeSearchSemantics": "Close search",
+  "clearFilterSemantics": "Clear {filter}",
+  "@clearFilterSemantics": {
+    "description": "Names the cross inside a pill that is narrowed to something",
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your network and try again.",
   "searchHint": "Search listings",

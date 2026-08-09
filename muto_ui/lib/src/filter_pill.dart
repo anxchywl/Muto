@@ -14,7 +14,13 @@ class FilterPill extends StatelessWidget {
     this.label,
     this.semanticLabel,
     this.highlighted = false,
-  }) : assert(icon != null || label != null, 'a pill needs something to show');
+    this.onClear,
+    this.clearLabel,
+  }) : assert(icon != null || label != null, 'a pill needs something to show'),
+       assert(
+         onClear == null || clearLabel != null,
+         'a clear control has to announce itself',
+       );
 
   final VoidCallback onTap;
   final AppIconData? icon;
@@ -25,6 +31,13 @@ class FilterPill extends StatelessWidget {
   final String? semanticLabel;
 
   final bool highlighted;
+
+  /// Lets go of whatever this pill is narrowed to. Shown as a cross inside the
+  /// pill, and only while [highlighted] — there is nothing to let go of
+  /// otherwise.
+  final VoidCallback? onClear;
+
+  final String? clearLabel;
 
   /// Tall enough to hit, and the height the strip reserves.
   static const double height = 40;
@@ -39,12 +52,13 @@ class FilterPill extends StatelessWidget {
         ? (isLight ? AppColors.primaryLight : AppColors.primaryLightDark)
         : (isLight ? AppColors.surface : AppColors.surfaceDark);
     final radius = AppSpacing.borderRadiusRound;
+    final clear = highlighted && onClear != null;
 
     return Semantics(
       label: semanticLabel ?? label,
       button: true,
       selected: highlighted,
-      excludeSemantics: true,
+      excludeSemantics: !clear,
       child: Material(
         color: background,
         borderRadius: radius,
@@ -86,6 +100,33 @@ class FilterPill extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (clear) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        // bare glyph, no surface of its own: it belongs to the
+                        // pill rather than sitting on top of it
+                        Semantics(
+                          label: clearLabel,
+                          button: true,
+                          excludeSemantics: true,
+                          // its own node, or it merges into the pill's label
+                          // and stops being addressable on its own
+                          container: true,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onClear,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.sm,
+                              ),
+                              child: AppIcon(
+                                AppIcons.close,
+                                size: 14,
+                                color: foreground,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),

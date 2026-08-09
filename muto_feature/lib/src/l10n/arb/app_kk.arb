@@ -10,6 +10,7 @@
   "actionRetry": "Қайталау",
   "actionCancel": "Бас тарту",
   "actionClose": "Жабу",
+  "clearFilterSemantics": "{filter} сүзгісін алып тастау",
   "closeSearchSemantics": "Іздеуді жабу",
   "errorGeneric": "Бірдеңе дұрыс болмады. Қайталап көріңіз.",
   "errorOffline": "Байланыс жоқ. Желіні тексеріп, қайталап көріңіз.",

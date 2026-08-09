@@ -82,6 +82,11 @@ class BrowseControls extends StatelessWidget {
                     : labels.category(query.category!),
                 highlighted: query.category != null,
                 onTap: () => _pickCategory(context),
+                clearLabel: strings.clearFilterSemantics(
+                  strings.filterCategory,
+                ),
+                onClear: () =>
+                    onQueryChanged(query.copyWith(clearCategory: true)),
               ),
               const SizedBox(width: AppSpacing.sm),
               FilterPill(
@@ -90,6 +95,8 @@ class BrowseControls extends StatelessWidget {
                     : labels.kind(query.kind!),
                 highlighted: query.kind != null,
                 onTap: () => _pickKind(context),
+                clearLabel: strings.clearFilterSemantics(strings.filterKind),
+                onClear: () => onQueryChanged(query.copyWith(clearKind: true)),
               ),
               const SizedBox(width: AppSpacing.sm),
               FilterPill(
@@ -98,6 +105,11 @@ class BrowseControls extends StatelessWidget {
                     : labels.condition(query.condition!),
                 highlighted: query.condition != null,
                 onTap: () => _pickCondition(context),
+                clearLabel: strings.clearFilterSemantics(
+                  strings.filterCondition,
+                ),
+                onClear: () =>
+                    onQueryChanged(query.copyWith(clearCondition: true)),
               ),
             ],
           ),

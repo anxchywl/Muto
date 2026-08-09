@@ -10,6 +10,7 @@
   "actionRetry": "Повторить",
   "actionCancel": "Отмена",
   "actionClose": "Закрыть",
+  "clearFilterSemantics": "Сбросить: {filter}",
   "closeSearchSemantics": "Закрыть поиск",
   "errorGeneric": "Что-то пошло не так. Попробуйте ещё раз.",
   "errorOffline": "Нет соединения. Проверьте сеть и попробуйте снова.",
