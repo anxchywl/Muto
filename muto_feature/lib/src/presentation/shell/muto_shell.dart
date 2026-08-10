@@ -192,17 +192,17 @@ class _BottomBar extends StatelessWidget {
         top: AppSpacing.xs,
       ),
       child: Row(
-        // sized to content rather than split evenly, so the chosen
-        // destination can take the room it needs and the others give it up
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           for (var i = 0; i < labels.length; i++)
-            _NavButton(
-              icon: icons[i],
-              label: labels[i],
-              selected: i == current,
-              bottomInset: MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
-              onTap: () => onSelected(i),
+            Expanded(
+              child: _NavButton(
+                icon: icons[i],
+                label: labels[i],
+                selected: i == current,
+                bottomInset:
+                    MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
+                onTap: () => onSelected(i),
+              ),
             ),
         ],
       ),
@@ -243,50 +243,46 @@ class _NavButton extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: AppSpacing.borderRadiusRound,
+        borderRadius: AppSpacing.borderRadiusMd,
         child: Padding(
           padding: EdgeInsets.only(bottom: bottomInset),
-          // the chosen destination widens to take its label in; the others give
-          // the room back and keep only their icon
-          child: AnimatedContainer(
-            duration: _duration,
-            curve: Curves.easeOutCubic,
-            constraints: const BoxConstraints(minHeight: 44),
-            padding: EdgeInsets.symmetric(
-              horizontal: selected ? AppSpacing.df : AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: selected
-                  ? (isLight
-                        ? AppColors.primaryLight
-                        : AppColors.primaryLightDark)
-                  : Colors.transparent,
-              borderRadius: AppSpacing.borderRadiusRound,
-            ),
-            child: AnimatedSize(
-              duration: _duration,
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppIcon(icon, size: 22, color: accent),
-                  if (selected) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: accent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // the pill widens under the icon as a destination is chosen,
+              // rather than appearing at full size in one frame
+              AnimatedContainer(
+                duration: _duration,
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                  horizontal: selected ? AppSpacing.lg : AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? (isLight
+                            ? AppColors.primaryLight
+                            : AppColors.primaryLightDark)
+                      : Colors.transparent,
+                  borderRadius: AppSpacing.borderRadiusMd,
+                ),
+                child: AppIcon(icon, size: 22, color: accent),
               ),
-            ),
+              const SizedBox(height: AppSpacing.xs),
+              AnimatedDefaultTextStyle(
+                duration: _duration,
+                curve: Curves.easeOutCubic,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: accent,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
       ),

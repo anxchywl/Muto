@@ -39,7 +39,7 @@
   },
   "errorGeneric": "Something went wrong. Please try again.",
   "errorOffline": "No connection. Check your network and try again.",
-  "searchHint": "Search listings",
+  "searchHint": "Search",
   "@searchHint": {
     "description": "Placeholder in the browse search field"
   },

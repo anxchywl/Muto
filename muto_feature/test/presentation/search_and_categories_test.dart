@@ -52,8 +52,7 @@ Future<void> _openSearch(WidgetTester tester) async {
   // what it says rather than by where it sits
   await tester.tap(
     find.byWidgetPredicate(
-      (widget) =>
-          widget is FilterPill && widget.semanticLabel == 'Search listings',
+      (widget) => widget is FilterPill && widget.semanticLabel == 'Search',
     ),
   );
   await tester.pumpAndSettle();

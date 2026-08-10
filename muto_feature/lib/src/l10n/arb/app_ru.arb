@@ -14,7 +14,7 @@
   "closeSearchSemantics": "Закрыть поиск",
   "errorGeneric": "Что-то пошло не так. Попробуйте ещё раз.",
   "errorOffline": "Нет соединения. Проверьте сеть и попробуйте снова.",
-  "searchHint": "Поиск объявлений",
+  "searchHint": "Поиск",
   "filterCategory": "Категория",
   "filterKind": "Тип",
   "filterCondition": "Состояние",
