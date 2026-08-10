@@ -108,6 +108,14 @@ final class ListingEditorController extends ChangeNotifier {
 
   bool get canAddImage => _draft.images.length < ListingRules.maxImages;
 
+  /// Brings the issues into view without attempting a write, which is what a
+  /// step that refuses to move on has to do to explain itself.
+  void revealIssues() {
+    if (_showIssues) return;
+    _showIssues = true;
+    notifyListeners();
+  }
+
   void edit(ListingDraft Function(ListingDraft current) change) {
     _draft = change(_draft);
     _failure = null;

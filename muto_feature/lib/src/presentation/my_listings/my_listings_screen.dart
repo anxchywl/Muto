@@ -44,7 +44,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.navMyListings)),
+      appBar: AppBar(centerTitle: true, title: Text(strings.navMyListings)),
       body: ListenableBuilder(
         listenable: scope.mine,
         builder: (context, _) => ListingFeedView(
@@ -53,9 +53,9 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           onOpenListing: widget.onOpenListing,
           emptyIcon: AppIcons.request,
           emptyTitle: strings.myListingsEmptyTitle,
-          emptyMessage: strings.myListingsEmptyMessage,
           // saving your own listing is not a thing anyone wants to do
           showFavoriteToggle: false,
+          reservesComposeButton: true,
         ),
       ),
     );

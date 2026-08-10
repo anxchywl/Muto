@@ -10,7 +10,7 @@ import '../../domain/entities/listing_status.dart';
 import '../../domain/failures.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
-import '../editor/listing_editor_screen.dart';
+import '../editor/listing_editor_sheet.dart';
 import '../images/listing_image_provider.dart';
 import '../report/report_sheet.dart';
 import '../seller/seller_profile_screen.dart';
@@ -409,10 +409,9 @@ class _OwnerActionsState extends State<_OwnerActions> {
   }
 
   Future<void> _edit() async {
-    final saved = await Navigator.of(context).push<Listing>(
-      MaterialPageRoute<Listing>(
-        builder: (_) => ListingEditorScreen(editing: widget.listing),
-      ),
+    final saved = await showListingEditorSheet(
+      context,
+      editing: widget.listing,
     );
     if (saved == null || !mounted) return;
     unawaited(Navigator.of(context).maybePop());

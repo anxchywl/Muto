@@ -45,10 +45,13 @@ final class ListingLabels {
 
   /// What sits where a price would be. A giveaway and a swap have no amount,
   /// but the space still has to say something useful.
-  String price(Listing listing) {
-    final amount = listing.price;
+  String price(Listing listing) => priceOf(listing.price, listing.kind);
+
+  /// The same wording for something not published yet, where there is a draft
+  /// rather than a listing to ask.
+  String priceOf(Money? amount, ListingKind kind) {
     if (amount != null) return money(amount);
-    switch (listing.kind) {
+    switch (kind) {
       case ListingKind.giveaway:
         return strings.priceFree;
       case ListingKind.exchange:

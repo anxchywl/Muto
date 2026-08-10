@@ -44,7 +44,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.navFavorites)),
+      appBar: AppBar(centerTitle: true, title: Text(strings.navFavorites)),
       body: ListenableBuilder(
         // the saved set is listened to as well, so unsaving something removes
         // it from this list without a reload
@@ -53,9 +53,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           feed: scope.favorites,
           labels: labels,
           onOpenListing: widget.onOpenListing,
-          emptyIcon: AppIcons.heart,
+          emptyIcon: AppIcons.heartBroken,
           emptyTitle: strings.favoritesEmptyTitle,
-          emptyMessage: strings.favoritesEmptyMessage,
         ),
       ),
     );

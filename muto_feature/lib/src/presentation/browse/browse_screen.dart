@@ -151,51 +151,48 @@ class _BrowseScreenState extends State<BrowseScreen> {
     );
 
     return Scaffold(
+      appBar: AppBar(centerTitle: true, title: Text(strings.navBrowse)),
       body: SafeArea(
         bottom: false,
-        child: Column(
+        // the panel covers the feed instead of replacing it, so dismissing
+        // the field puts the reader back where they were
+        child: Stack(
           children: [
-            BrowseControls(
-              query: _query,
-              labels: labels,
-              searching: _searching,
-              searchController: _search,
-              searchFocus: _searchFocus,
-              onQueryChanged: _onQueryChanged,
-              onSearchOpened: _openSearch,
-              onSearchClosed: _closeSearch,
-              onSearchChanged: _onSearchChanged,
-              onSearchSubmitted: _onSearchSubmitted,
-            ),
-            Expanded(
-              // the panel covers the feed instead of replacing it, so
-              // dismissing the field puts the reader back where they were
-              child: Stack(
-                children: [
-                  // rebuilt apart from the search field, so a feed update
-                  // cannot take the caret away mid-typing
-                  ListenableBuilder(
-                    listenable: scope.browse,
-                    builder: (context, _) => ListingFeedView(
-                      feed: scope.browse,
-                      labels: labels,
-                      onOpenListing: widget.onOpenListing,
-                      emptyIcon: AppIcons.search,
-                      emptyTitle: strings.browseEmptyTitle,
-                    ),
-                  ),
-                  if (_typing)
-                    Positioned.fill(
-                      child: SearchPanel(
-                        controller: scope.search,
-                        hasText: _search.text.trim().isNotEmpty,
-                        onTerm: _onSearchSubmitted,
-                        strings: strings,
-                      ),
-                    ),
-                ],
+            // rebuilt apart from the search field, so a feed update cannot
+            // take the caret away mid-typing
+            ListenableBuilder(
+              listenable: scope.browse,
+              builder: (context, _) => ListingFeedView(
+                feed: scope.browse,
+                labels: labels,
+                onOpenListing: widget.onOpenListing,
+                emptyIcon: AppIcons.search,
+                emptyTitle: strings.browseEmptyTitle,
+                // the strip is the list's own first row, so it scrolls with
+                // the cards rather than floating apart from them
+                header: BrowseControls(
+                  query: _query,
+                  labels: labels,
+                  searching: _searching,
+                  searchController: _search,
+                  searchFocus: _searchFocus,
+                  onQueryChanged: _onQueryChanged,
+                  onSearchOpened: _openSearch,
+                  onSearchClosed: _closeSearch,
+                  onSearchChanged: _onSearchChanged,
+                  onSearchSubmitted: _onSearchSubmitted,
+                ),
               ),
             ),
+            if (_typing)
+              Positioned.fill(
+                child: SearchPanel(
+                  controller: scope.search,
+                  hasText: _search.text.trim().isNotEmpty,
+                  onTerm: _onSearchSubmitted,
+                  strings: strings,
+                ),
+              ),
           ],
         ),
       ),

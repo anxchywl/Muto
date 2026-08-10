@@ -2,14 +2,12 @@ import 'dart:async';
 
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:muto_ui/muto_ui.dart';
 
 import '../../application/muto_scope.dart';
-import '../../config/muto_config.dart';
 import '../../domain/entities/listing.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../browse/browse_screen.dart';
-import '../editor/listing_editor_screen.dart';
+import '../editor/listing_editor_sheet.dart';
 import '../favorites/favorites_screen.dart';
 import '../listing/listing_detail_screen.dart';
 import '../my_listings/my_listings_screen.dart';
@@ -19,9 +17,7 @@ import '../my_listings/my_listings_screen.dart';
 /// It keeps its stack inside a nested navigator so a host can push its own
 /// routes above the feature without the two fighting over one stack.
 class MutoShell extends StatefulWidget {
-  const MutoShell({super.key, required this.config});
-
-  final MutoConfig config;
+  const MutoShell({super.key});
 
   @override
   State<MutoShell> createState() => _MutoShellState();
@@ -36,6 +32,23 @@ class _MutoShellState extends State<MutoShell> {
     GlobalKey<NavigatorState>(),
   ];
   int _destination = 0;
+
+  // the FAB belongs to the root of "my listings", not to whatever screen got
+  // pushed on top of it (a listing's own detail page, say), so the stack
+  // depth of the active tab decides whether it is shown at all
+  final List<int> _stackDepths = [1, 1, 1];
+
+  // built once rather than inline in `build`, since an observer recreated on
+  // every rebuild would forget the depth it was already tracking
+  late final List<_StackDepthObserver> _stackObservers = [
+    for (var i = 0; i < _navigators.length; i++)
+      _StackDepthObserver(
+        onChanged: (depth) {
+          if (_stackDepths[i] == depth) return;
+          setState(() => _stackDepths[i] = depth);
+        },
+      ),
+  ];
 
   NavigatorState? get _navigator => _navigators[_destination].currentState;
 
@@ -55,18 +68,13 @@ class _MutoShellState extends State<MutoShell> {
   }
 
   Future<void> _openEditor() async {
-    // pushed on the feature's navigator, not the tab's, so it covers the whole
-    // surface the way a separate task should
-    final saved = await Navigator.of(context).push<Listing>(
-      MaterialPageRoute<Listing>(
-        fullscreenDialog: true,
-        builder: (_) => const ListingEditorScreen(),
-      ),
-    );
+    final saved = await showListingEditorSheet(context);
     if (saved == null || !mounted) return;
-    // the feed was marked stale by the write; reload it so the listing the
-    // student just published is actually there when they land back on it
-    unawaited(MutoScope.of(context).browse.refresh());
+    // the feeds were marked stale by the write; reload them so the listing the
+    // student just published is actually there when they look
+    final scope = MutoScope.of(context);
+    unawaited(scope.mine.refresh());
+    unawaited(scope.browse.refresh());
   }
 
   void _openListing(Listing listing) {
@@ -83,49 +91,50 @@ class _MutoShellState extends State<MutoShell> {
     final strings = MutoLocalizations.of(context);
     final session = MutoScope.of(context).session;
 
+    // publishing belongs to the root of the student's own listings, so the
+    // button lives there and nowhere else — not on a listing pushed on top
+    final showsCompose =
+        session.canPublish && _destination == 2 && _stackDepths[2] <= 1;
+
     return Scaffold(
-      body: Column(
+      body: IndexedStack(
+        index: _destination,
         children: [
-          if (widget.config.usesSampleData)
-            SafeArea(
-              bottom: false,
-              child: SampleDataBanner(
-                label: strings.sampleDataIndicator,
-                onTap: () => _explainSampleData(context, strings),
+          for (var i = 0; i < _navigators.length; i++)
+            Navigator(
+              key: _navigators[i],
+              observers: [_stackObservers[i]],
+              onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                settings: settings,
+                builder: (_) => switch (i) {
+                  1 => FavoritesScreen(onOpenListing: _openListing),
+                  2 => MyListingsScreen(onOpenListing: _openListing),
+                  _ => BrowseScreen(onOpenListing: _openListing),
+                },
               ),
             ),
-          Expanded(
-            // the banner already sits under the notch, so the destinations
-            // below it must not inset for it a second time
-            child: MediaQuery.removePadding(
-              context: context,
-              removeTop: widget.config.usesSampleData,
-              child: IndexedStack(
-                index: _destination,
-                children: [
-                  for (var i = 0; i < _navigators.length; i++)
-                    Navigator(
-                      key: _navigators[i],
-                      onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                        settings: settings,
-                        builder: (_) => switch (i) {
-                          1 => FavoritesScreen(onOpenListing: _openListing),
-                          2 => MyListingsScreen(onOpenListing: _openListing),
-                          _ => BrowseScreen(onOpenListing: _openListing),
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
+      // it grows into place on the tab that owns it and folds away on the
+      // others, rather than blinking in and out between tabs
       floatingActionButton: session.canPublish
-          ? FloatingActionButton(
-              onPressed: () => unawaited(_openEditor()),
-              tooltip: strings.editorNewTitle,
-              child: const AppIcon(AppIcons.add, color: AppColors.white),
+          ? AnimatedScale(
+              duration: _duration,
+              curve: showsCompose ? Curves.easeOutBack : Curves.easeInCubic,
+              scale: showsCompose ? 1 : 0,
+              child: AnimatedOpacity(
+                duration: _duration,
+                curve: Curves.easeOutCubic,
+                opacity: showsCompose ? 1 : 0,
+                child: IgnorePointer(
+                  ignoring: !showsCompose,
+                  child: FloatingActionButton(
+                    onPressed: () => unawaited(_openEditor()),
+                    tooltip: strings.editorNewTitle,
+                    child: const AppIcon(AppIcons.add, color: AppColors.white),
+                  ),
+                ),
+              ),
             )
           : null,
       bottomNavigationBar: _BottomBar(
@@ -140,22 +149,6 @@ class _MutoShellState extends State<MutoShell> {
       ),
     );
   }
-}
-
-void _explainSampleData(BuildContext context, MutoLocalizations strings) {
-  showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(strings.sampleDataIndicator),
-      content: Text(strings.sampleDataExplanation),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(strings.actionClose),
-        ),
-      ],
-    ),
-  );
 }
 
 class _BottomBar extends StatelessWidget {
@@ -287,6 +280,38 @@ class _NavButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Reports how many routes deep a tab's own navigator stack is, so the shell
+/// can tell a tab's root screen apart from something pushed on top of it.
+class _StackDepthObserver extends NavigatorObserver {
+  _StackDepthObserver({required this.onChanged});
+
+  final ValueChanged<int> onChanged;
+  // the initial route also fires didPush once the Navigator mounts, so start
+  // at zero and let that first callback bring it to one
+  int _depth = 0;
+
+  void _report() =>
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChanged(_depth));
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _depth++;
+    _report();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _depth = _depth > 1 ? _depth - 1 : 1;
+    _report();
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _depth = _depth > 1 ? _depth - 1 : 1;
+    _report();
   }
 }
 

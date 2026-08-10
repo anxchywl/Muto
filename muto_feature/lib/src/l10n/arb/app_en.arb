@@ -4,14 +4,6 @@
   "@appTitle": {
     "description": "Name of the marketplace, shown in the app bar"
   },
-  "sampleDataIndicator": "Sample data",
-  "@sampleDataIndicator": {
-    "description": "Persistent label shown while the app runs on mock repositories"
-  },
-  "sampleDataExplanation": "This build has no server. Everything you see is local sample data, and nothing you do here leaves the device.",
-  "@sampleDataExplanation": {
-    "description": "Explanation shown when the sample data indicator is opened"
-  },
   "navBrowse": "Browse",
   "navFavorites": "Favorites",
   "navMyListings": "My listings",
@@ -210,6 +202,32 @@
   },
   "actionAddPhoto": "Add photo",
   "actionRemovePhoto": "Remove photo",
+  "editorCropTitle": "Adjust photo",
+  "editorCropApply": "Use photo",
+  "editorStepBasics": "Basics",
+  "editorStepDetails": "Details",
+  "editorStepPhotos": "Photos",
+  "editorStepPreview": "Preview",
+  "editorPreviewHint": "This is how your listing will look to other students.",
+  "@editorPreviewHint": {
+    "description": "Shown above the preview on the last step of the editor"
+  },
+  "editorPreviewFeedLabel": "In the feed",
+  "editorPreviewOpenFullPage": "View full listing page",
+  "editorStepSemantics": "Step {step} of {total}",
+  "@editorStepSemantics": {
+    "description": "How the editor's progress is announced by a screen reader",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "actionNext": "Next",
+  "actionBack": "Back",
   "actionPublish": "Publish",
   "actionSaveChanges": "Save changes",
   "actionDiscard": "Discard",
@@ -231,9 +249,7 @@
   "listingPublished": "Listing published",
   "listingSaved": "Changes saved",
   "favoritesEmptyTitle": "Nothing saved yet",
-  "favoritesEmptyMessage": "Tap the heart on a listing to keep it here.",
   "myListingsEmptyTitle": "You have not listed anything",
-  "myListingsEmptyMessage": "Anything you publish shows up here.",
   "actionSaveListing": "Save listing",
   "actionUnsaveListing": "Remove from saved",
   "actionEditListing": "Edit",

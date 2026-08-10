@@ -143,8 +143,7 @@ Every one of these is a decision, not a gap.
 ## What is simulated
 
 **There is no server.** Everything runs against sample data bundled with the
-app, and a `Sample data` banner says so on every screen. It cannot be
-dismissed.
+app.
 
 Simulated, and behaving as the real thing is specified to:
 

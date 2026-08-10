@@ -56,20 +56,16 @@ class _MutoFeatureState extends State<MutoFeature> {
         key: ValueKey<String>(widget._session.accessToken),
         dependencies: widget.dependencies,
         onSessionExpired: widget.onSessionExpired,
-        child: _SessionGate(
-          accessToken: widget._session.accessToken,
-          config: widget.config,
-        ),
+        child: _SessionGate(accessToken: widget._session.accessToken),
       ),
     );
   }
 }
 
 class _SessionGate extends StatefulWidget {
-  const _SessionGate({required this.accessToken, required this.config});
+  const _SessionGate({required this.accessToken});
 
   final String accessToken;
-  final MutoConfig config;
 
   @override
   State<_SessionGate> createState() => _SessionGateState();
@@ -101,7 +97,7 @@ class _SessionGateState extends State<_SessionGate> {
             return Navigator(
               onGenerateRoute: (settings) => MaterialPageRoute<void>(
                 settings: settings,
-                builder: (_) => MutoShell(config: widget.config),
+                builder: (_) => const MutoShell(),
               ),
             );
           case SessionStatus.idle:

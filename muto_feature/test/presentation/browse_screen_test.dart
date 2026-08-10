@@ -74,11 +74,12 @@ void main() {
     expect(find.text('Small study lamp, clip-on'), findsOneWidget);
   });
 
-  testWidgets('says plainly that it is running on sample data', (tester) async {
+  testWidgets('gives the feed the whole surface above the tabs', (
+    tester,
+  ) async {
     await _pumpFeature(tester);
 
-    expect(find.byType(SampleDataBanner), findsOneWidget);
-    expect(find.text('Sample data'), findsOneWidget);
+    expect(find.text('Sample data'), findsNothing);
   });
 
   testWidgets('shows a price with its currency, in the reader\'s locale', (
@@ -137,7 +138,6 @@ void main() {
 
     expect(find.text('Каталог'), findsWidgets);
     expect(find.text('Избранное'), findsOneWidget);
-    expect(find.text('Тестовые данные'), findsOneWidget);
     expect(find.text('Бесплатно'), findsWidgets);
   });
 
@@ -145,7 +145,6 @@ void main() {
     await _pumpFeature(tester, locale: const Locale('kk'));
 
     expect(find.text('Таңдаулылар'), findsOneWidget);
-    expect(find.text('Сынақ деректері'), findsOneWidget);
     expect(find.text('Тегін'), findsWidgets);
   });
 
@@ -166,9 +165,12 @@ void main() {
     final handle = tester.ensureSemantics();
     await _pumpFeature(tester);
 
-    for (final label in ['Browse', 'Favorites', 'My listings']) {
+    // 'Browse' also names the header now sitting above the feed, so this one
+    // is only meaningfully absent, not meaningfully singular
+    for (final label in ['Favorites', 'My listings']) {
       expect(find.bySemanticsLabel(label), findsOneWidget, reason: label);
     }
+    expect(find.bySemanticsLabel('Browse'), findsWidgets);
     handle.dispose();
   });
 

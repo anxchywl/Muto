@@ -44,86 +44,106 @@ class BrowseControls extends StatelessWidget {
     final strings = labels.strings;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.df,
-        AppSpacing.sm,
-        AppSpacing.df,
-        AppSpacing.sm,
-      ),
-      child: AnimatedCrossFade(
-        duration: const Duration(milliseconds: 200),
-        sizeCurve: Curves.easeInOut,
-        crossFadeState: searching
-            ? CrossFadeState.showSecond
-            : CrossFadeState.showFirst,
-        firstChild: SizedBox(
-          height: FilterPill.height,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.zero,
-            children: [
-              FilterPill(
-                icon: AppIcons.search,
-                semanticLabel: strings.searchHint,
-                highlighted: query.text?.isNotEmpty ?? false,
-                onTap: onSearchOpened,
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              FilterPill(
-                icon: AppIcons.sort,
-                semanticLabel: strings.filterSort,
-                highlighted: query.sort != ListingSort.newest,
-                onTap: () => _pickSort(context),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              FilterPill(
-                label: query.category == null
-                    ? strings.filterCategory
-                    : labels.category(query.category!),
-                highlighted: query.category != null,
-                onTap: () => _pickCategory(context),
-                clearLabel: strings.clearFilterSemantics(
-                  strings.filterCategory,
-                ),
-                onClear: () =>
-                    onQueryChanged(query.copyWith(clearCategory: true)),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              FilterPill(
-                label: query.kind == null
-                    ? strings.filterKind
-                    : labels.kind(query.kind!),
-                highlighted: query.kind != null,
-                onTap: () => _pickKind(context),
-                clearLabel: strings.clearFilterSemantics(strings.filterKind),
-                onClear: () => onQueryChanged(query.copyWith(clearKind: true)),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              FilterPill(
-                label: query.condition == null
-                    ? strings.filterCondition
-                    : labels.condition(query.condition!),
-                highlighted: query.condition != null,
-                onTap: () => _pickCondition(context),
-                clearLabel: strings.clearFilterSemantics(
-                  strings.filterCondition,
-                ),
-                onClear: () =>
-                    onQueryChanged(query.copyWith(clearCondition: true)),
-              ),
-            ],
-          ),
+      // horizontal space comes from the feed this sits inside, the same way
+      // it does for a card, so the two line up
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      // both halves are the same height, so the swap is a movement rather than
+      // a resize: each one slides the way the other left
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final isField = (child.key as ValueKey<bool>?)?.value ?? false;
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: Offset(isField ? 0.08 : -0.08, 0),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        layoutBuilder: (current, previous) => Stack(
+          alignment: Alignment.centerLeft,
+          children: [...previous, ?current],
         ),
-        secondChild: FeedSearchField(
-          controller: searchController,
-          focusNode: searchFocus,
-          hint: strings.searchHint,
-          onChanged: onSearchChanged,
-          onSubmitted: onSearchSubmitted,
-          onClose: onSearchClosed,
-          clearLabel: strings.clearSearchSemantics,
-          closeLabel: strings.closeSearchSemantics,
-        ),
+        child: searching
+            ? FeedSearchField(
+                key: const ValueKey<bool>(true),
+                controller: searchController,
+                focusNode: searchFocus,
+                hint: strings.searchHint,
+                onChanged: onSearchChanged,
+                onSubmitted: onSearchSubmitted,
+                onClose: onSearchClosed,
+                clearLabel: strings.clearSearchSemantics,
+                closeLabel: strings.closeSearchSemantics,
+              )
+            : SizedBox(
+                key: const ValueKey<bool>(false),
+                height: FilterPill.height,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    FilterPill(
+                      icon: AppIcons.search,
+                      semanticLabel: strings.searchHint,
+                      highlighted: query.text?.isNotEmpty ?? false,
+                      onTap: onSearchOpened,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilterPill(
+                      icon: AppIcons.sort,
+                      semanticLabel: strings.filterSort,
+                      highlighted: query.sort != ListingSort.newest,
+                      onTap: () => _pickSort(context),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilterPill(
+                      label: query.category == null
+                          ? strings.filterCategory
+                          : labels.category(query.category!),
+                      highlighted: query.category != null,
+                      onTap: () => _pickCategory(context),
+                      clearLabel: strings.clearFilterSemantics(
+                        strings.filterCategory,
+                      ),
+                      onClear: () =>
+                          onQueryChanged(query.copyWith(clearCategory: true)),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilterPill(
+                      label: query.kind == null
+                          ? strings.filterKind
+                          : labels.kind(query.kind!),
+                      highlighted: query.kind != null,
+                      onTap: () => _pickKind(context),
+                      clearLabel: strings.clearFilterSemantics(
+                        strings.filterKind,
+                      ),
+                      onClear: () =>
+                          onQueryChanged(query.copyWith(clearKind: true)),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    FilterPill(
+                      label: query.condition == null
+                          ? strings.filterCondition
+                          : labels.condition(query.condition!),
+                      highlighted: query.condition != null,
+                      onTap: () => _pickCondition(context),
+                      clearLabel: strings.clearFilterSemantics(
+                        strings.filterCondition,
+                      ),
+                      onClear: () =>
+                          onQueryChanged(query.copyWith(clearCondition: true)),
+                    ),
+                  ],
+                ),
+              ),
       ),
     );
   }

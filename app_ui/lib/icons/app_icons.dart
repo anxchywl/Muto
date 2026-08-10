@@ -221,6 +221,9 @@ abstract class AppIcons {
   static const AppIconData request = MaterialIcon(LucideIcons.fileQuestion);
 
   static const AppIconData heart  = MaterialIcon(LucideIcons.heart);
+
+  /// Nothing saved (SF: heart.slash).
+  static const AppIconData heartBroken = MaterialIcon(LucideIcons.heartCrack);
   static const AppIconData fintech = MaterialIcon(LucideIcons.trendingUp);
   static const AppIconData wallet  = MaterialIcon(LucideIcons.wallet);
 

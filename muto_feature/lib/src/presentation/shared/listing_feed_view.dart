@@ -26,6 +26,8 @@ class ListingFeedView extends StatefulWidget {
     required this.emptyIcon,
     this.emptyMessage,
     this.showFavoriteToggle = true,
+    this.reservesComposeButton = false,
+    this.header,
   });
 
   final ListingFeedController feed;
@@ -38,6 +40,14 @@ class ListingFeedView extends StatefulWidget {
   final String? emptyMessage;
   final AppIconData emptyIcon;
   final bool showFavoriteToggle;
+
+  /// Sits above the cards as the list's own first item, so it scrolls with
+  /// them rather than floating apart from what it is searching and filtering.
+  final Widget? header;
+
+  /// Keeps a strip at the bottom clear for the compose button, on the one feed
+  /// that has one. Elsewhere the last card would be looking at empty space.
+  final bool reservesComposeButton;
 
   @override
   State<ListingFeedView> createState() => _ListingFeedViewState();
@@ -75,25 +85,37 @@ class _ListingFeedViewState extends State<ListingFeedView> {
     final strings = labels.strings;
 
     if (!feed.hasLoaded && feed.failure != null) {
-      return StateMessage(
-        icon: AppIcons.alertCircle,
-        title: strings.browseErrorTitle,
-        message: _messageFor(feed.failure!, strings),
-        actionLabel: strings.actionRetry,
-        onAction: () => unawaited(feed.refresh()),
+      return _withStaticHeader(
+        StateMessage(
+          icon: AppIcons.alertCircle,
+          title: strings.browseErrorTitle,
+          message: _messageFor(feed.failure!, strings),
+          actionLabel: strings.actionRetry,
+          onAction: () => unawaited(feed.refresh()),
+        ),
       );
     }
 
     // nothing has arrived yet, which is not the same as nothing matching
-    if (!feed.hasLoaded) return const ListingSkeleton();
+    if (!feed.hasLoaded) return _withStaticHeader(const ListingSkeleton());
 
     if (feed.items.isEmpty) {
-      return StateMessage(
-        icon: widget.emptyIcon,
-        title: widget.emptyTitle,
-        message: widget.emptyMessage,
+      return _withStaticHeader(
+        StateMessage(
+          icon: widget.emptyIcon,
+          title: widget.emptyTitle,
+          message: widget.emptyMessage,
+        ),
       );
     }
+
+    final header = widget.header;
+    // the header rides in the list itself, as row zero, rather than sitting
+    // outside it — so it scrolls with the cards instead of apart from them
+    final itemCount =
+        (header == null ? 0 : 1) +
+        feed.items.length +
+        (feed.isLoadingMore ? 1 : 0);
 
     return RefreshIndicator(
       onRefresh: feed.refresh,
@@ -106,24 +128,29 @@ class _ListingFeedViewState extends State<ListingFeedView> {
           Expanded(
             child: ListView.separated(
               controller: _scroll,
-              // the last row has to clear the floating action button, or the
-              // bottom of the feed is unreachable
-              padding: const EdgeInsets.fromLTRB(
+              // the last row has to clear the compose button where there is
+              // one, or the bottom of the feed is unreachable
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.df,
+                header == null ? AppSpacing.df : 0,
                 AppSpacing.df,
-                AppSpacing.df,
-                AppSpacing.xxxl + AppSpacing.xl,
+                widget.reservesComposeButton
+                    ? AppSpacing.xxxl + AppSpacing.xl
+                    : AppSpacing.df,
               ),
-              itemCount: feed.items.length + (feed.isLoadingMore ? 1 : 0),
+              itemCount: itemCount,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
-                if (index >= feed.items.length) {
+                if (header != null && index == 0) return header;
+                final itemIndex = header == null ? index : index - 1;
+
+                if (itemIndex >= feed.items.length) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: AppSpacing.df),
                     child: Center(child: AppLoader()),
                   );
                 }
-                final listing = feed.items[index];
+                final listing = feed.items[itemIndex];
                 return ListingCard(
                   title: listing.title,
                   priceText: labels.price(listing),
@@ -147,6 +174,22 @@ class _ListingFeedViewState extends State<ListingFeedView> {
           ),
         ],
       ),
+    );
+  }
+
+  /// The header stays put here — there is nothing under it worth scrolling —
+  /// but it keeps searching and filtering reachable even out of listings.
+  Widget _withStaticHeader(Widget child) {
+    final header = widget.header;
+    if (header == null) return child;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.df),
+          child: header,
+        ),
+        Expanded(child: child),
+      ],
     );
   }
 }

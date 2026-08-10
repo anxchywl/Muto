@@ -114,7 +114,9 @@ class AppTheme {
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
       centerTitle: true,
-      backgroundColor: isLight ? AppColors.white : const Color(0xFF1F1F1F),
+      // matches the scaffold behind it, so a header reads as part of the
+      // screen rather than a bar sitting on top of it
+      backgroundColor: isLight ? AppColors.background : const Color(0xFF171717),
       foregroundColor: isLight ? AppColors.textColor : const Color(0xFFF5F5F5),
       iconTheme: IconThemeData(
           color: isLight ? AppColors.iconGrey : const Color(0xFFF5F5F5), size: 24),

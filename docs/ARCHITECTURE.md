@@ -87,8 +87,9 @@ Four things the host supplies:
 2. **Dependencies.** A `MutoDependencies` with a real implementation of every
    repository interface. Until a backend exists, `createSampleDependencies()`
    is the only implementation there is.
-3. **A config.** `MutoBackend.remote` turns off the sample-data banner, so it
-   must not be set while sample repositories are wired.
+3. **A config.** `MutoBackend` records which data source the build was
+   assembled with, and must not say `remote` while sample repositories are
+   wired.
 4. **`onSessionExpired`.** Called once per token when a call comes back
    unauthorized, however many calls failed. The host refreshes and passes a new
    token, which rebuilds the scope so nothing from the previous session
@@ -206,8 +207,8 @@ Two of them are local by nature. Drafts and recent searches are the student's
 own text on their own device, and neither would move to a server if one
 appeared.
 
-`MutoConfig.backend` records which was chosen, and the sample-data banner is
-derived from it rather than set by hand, so it cannot drift from the truth.
+`MutoConfig.backend` records which was chosen, at the one place the feature is
+constructed rather than inferred deeper in the tree.
 
 Two of them are local by nature: drafts and recent searches are the student's
 own text on their own device, and neither would move to a server if one
