@@ -158,5 +158,14 @@
   "reportNoteTooLong": "500 таңбадан аспасын.",
   "reportTooMany": "Сіз соңғы уақытта тым көп шағым жібердіңіз. Кейінірек көріңіз.",
   "actionSendReport": "Шағым жіберу",
-  "reportSent": "Шағым жіберілді"
+  "reportSent": "Шағым жіберілді",
+  "navReports": "Шағымдар",
+  "operationsReportsTitle": "Тексерілетін шағымдар",
+  "operationsReportsEmpty": "Тексерілетін шағым жоқ",
+  "operationsReportsEmptyMessage": "Студенттердің жаңа шағымдары осында шығады.",
+  "operationsReportsFailed": "Шағымдарды жүктеу мүмкін болмады",
+  "operationsListingLabel": "Хабарландыру",
+  "operationsReasonLabel": "Себеп",
+  "operationsNoteLabel": "Студент түсініктемесі",
+  "actionLoadMore": "Тағы жүктеу"
 }

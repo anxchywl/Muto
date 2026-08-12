@@ -299,5 +299,14 @@
   "reportNoteTooLong": "Keep this under 500 characters.",
   "reportTooMany": "You have sent several reports recently. Try again later.",
   "actionSendReport": "Send report",
-  "reportSent": "Report sent"
+  "reportSent": "Report sent",
+  "navReports": "Reports",
+  "operationsReportsTitle": "Reports needing review",
+  "operationsReportsEmpty": "No reports to review",
+  "operationsReportsEmptyMessage": "New student reports will appear here.",
+  "operationsReportsFailed": "Could not load reports",
+  "operationsListingLabel": "Listing",
+  "operationsReasonLabel": "Reason",
+  "operationsNoteLabel": "Student note",
+  "actionLoadMore": "Load more"
 }

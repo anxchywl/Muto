@@ -1,4 +1,5 @@
 import '../../application/muto_scope.dart';
+import '../../domain/entities/identity.dart';
 import '../local/preferences_draft_store.dart';
 import '../local/preferences_search_history_store.dart';
 import 'mock_environment.dart';
@@ -6,6 +7,7 @@ import 'mock_favorites_repository.dart';
 import 'mock_image_repository.dart';
 import 'mock_listing_repository.dart';
 import 'mock_report_repository.dart';
+import 'mock_report_operations_repository.dart';
 import 'mock_seller_repository.dart';
 import 'mock_session_repository.dart';
 import 'sample_data.dart';
@@ -59,6 +61,12 @@ MutoDependencies buildSampleDependencies(
   return MutoDependencies(
     session: MockSessionRepository(
       identity: data.viewer,
+      adminIdentity: const Identity(
+        userId: 'sample-operator',
+        displayName: 'Development Operator',
+        isVerified: true,
+        isAdmin: true,
+      ),
       latency: latency,
       faults: shared,
     ),
@@ -78,6 +86,7 @@ MutoDependencies buildSampleDependencies(
       latency: latency,
       faults: shared,
     ),
+    reportOperations: const MockReportOperationsRepository(),
     images: MockImageRepository(store: store, latency: latency, faults: shared),
     imageLocator: MockImageLocator(
       store: store,

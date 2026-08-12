@@ -7,11 +7,13 @@ final class Identity {
     required this.userId,
     required this.displayName,
     required this.isVerified,
+    this.isAdmin = false,
   });
 
   final String userId;
   final String displayName;
   final bool isVerified;
+  final bool isAdmin;
 
   @override
   bool operator ==(Object other) =>
@@ -19,8 +21,9 @@ final class Identity {
       other is Identity &&
           other.userId == userId &&
           other.displayName == displayName &&
-          other.isVerified == isVerified;
+          other.isVerified == isVerified &&
+          other.isAdmin == isAdmin;
 
   @override
-  int get hashCode => Object.hash(userId, displayName, isVerified);
+  int get hashCode => Object.hash(userId, displayName, isVerified, isAdmin);
 }

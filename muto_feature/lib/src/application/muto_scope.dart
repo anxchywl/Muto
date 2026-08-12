@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 
+import '../config/muto_config.dart';
 import '../domain/repositories/draft_store.dart';
 import '../domain/repositories/favorites_repository.dart';
 import '../domain/repositories/image_locator.dart';
 import '../domain/repositories/image_repository.dart';
 import '../domain/repositories/listing_repository.dart';
 import '../domain/repositories/report_repository.dart';
+import '../domain/repositories/report_operations_repository.dart';
 import '../domain/repositories/search_history_store.dart';
 import '../domain/repositories/seller_repository.dart';
 import '../domain/repositories/session_repository.dart';
@@ -20,22 +22,26 @@ import 'session_controller.dart';
 /// so choosing sample data or a real backend is a single decision made once.
 final class MutoDependencies {
   const MutoDependencies({
+    this.backend = MutoBackend.sample,
     required this.session,
     required this.listings,
     required this.sellers,
     required this.favorites,
     required this.reports,
+    required this.reportOperations,
     required this.images,
     required this.imageLocator,
     required this.drafts,
     required this.searchHistory,
   });
 
+  final MutoBackend backend;
   final SessionRepository session;
   final ListingRepository listings;
   final SellerRepository sellers;
   final FavoritesRepository favorites;
   final ReportRepository reports;
+  final ReportOperationsRepository reportOperations;
   final ImageRepository images;
   final ImageLocator imageLocator;
   final DraftStore drafts;

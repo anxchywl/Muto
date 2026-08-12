@@ -10,6 +10,7 @@ import 'mock_environment.dart';
 final class MockSessionRepository implements SessionRepository {
   MockSessionRepository({
     required Identity identity,
+    this.adminIdentity,
     this.latency = const MockLatency(),
     MockFaults? faults,
   }) : _identity = identity,
@@ -18,6 +19,7 @@ final class MockSessionRepository implements SessionRepository {
   Identity _identity;
   final MockLatency latency;
   final MockFaults faults;
+  final Identity? adminIdentity;
 
   /// Lets development switch to an unverified student and check that
   /// publishing and contact stay closed.
@@ -30,6 +32,9 @@ final class MockSessionRepository implements SessionRepository {
       throw const UnauthorizedFailure();
     }
     if (faults.offline) throw const NetworkFailure();
+    if (accessToken == 'sample-admin-session' && adminIdentity != null) {
+      return adminIdentity!;
+    }
     return _identity;
   }
 }

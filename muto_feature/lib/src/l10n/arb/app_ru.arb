@@ -158,5 +158,14 @@
   "reportNoteTooLong": "Не длиннее 500 символов.",
   "reportTooMany": "Вы отправили слишком много жалоб. Попробуйте позже.",
   "actionSendReport": "Отправить жалобу",
-  "reportSent": "Жалоба отправлена"
+  "reportSent": "Жалоба отправлена",
+  "navReports": "Жалобы",
+  "operationsReportsTitle": "Жалобы на проверку",
+  "operationsReportsEmpty": "Нет жалоб для проверки",
+  "operationsReportsEmptyMessage": "Новые жалобы студентов появятся здесь.",
+  "operationsReportsFailed": "Не удалось загрузить жалобы",
+  "operationsListingLabel": "Объявление",
+  "operationsReasonLabel": "Причина",
+  "operationsNoteLabel": "Комментарий студента",
+  "actionLoadMore": "Загрузить ещё"
 }

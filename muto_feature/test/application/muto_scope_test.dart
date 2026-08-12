@@ -9,6 +9,7 @@ import 'package:muto_feature/src/data/mock/mock_favorites_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_image_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_listing_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_report_repository.dart';
+import 'package:muto_feature/src/data/mock/mock_report_operations_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_seller_repository.dart';
 import 'package:muto_feature/src/data/mock/mock_session_repository.dart';
 import 'package:muto_feature/src/data/mock/sample_data.dart';
@@ -40,6 +41,7 @@ MutoDependencies _dependencies(SampleData data) {
       viewer: () => data.viewer,
       latency: const MockLatency.none(),
     ),
+    reportOperations: const MockReportOperationsRepository(),
     images: MockImageRepository(
       store: store,
       latency: const MockLatency.none(),
