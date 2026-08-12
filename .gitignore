@@ -18,8 +18,19 @@ muto_feature/lib/src/l10n/generated/
 # test and coverage output
 coverage/
 *.lcov
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
 test/failures/
 **/failures/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
 
 # Android
 **/android/local.properties
@@ -75,6 +86,7 @@ GoogleService-Info.plist
 *.log
 tmp/
 scratch/
+.local/
 
 # containers, if a service is ever added here
 .docker/

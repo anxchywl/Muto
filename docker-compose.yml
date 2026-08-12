@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: muto
+      POSTGRES_USER: muto
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    ports:
+      - "127.0.0.1:54321:5432"
+    volumes:
+      - muto_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U muto -d muto"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql+asyncpg://muto:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/muto
+      CURSOR_SECRET: ${CURSOR_SECRET:?CURSOR_SECRET must be set}
+      AUTH_ADAPTER: ${AUTH_ADAPTER:-host}
+      DEVELOPMENT_AUTH_TOKEN: ${DEVELOPMENT_AUTH_TOKEN:-}
+      DEVELOPMENT_ADMIN_AUTH_TOKEN: ${DEVELOPMENT_ADMIN_AUTH_TOKEN:-}
+      DEVELOPMENT_AUTH_SUBJECT: ${DEVELOPMENT_AUTH_SUBJECT:-student-a}
+      DEVELOPMENT_AUTH_DISPLAY_NAME: ${DEVELOPMENT_AUTH_DISPLAY_NAME:-Development Student}
+      DEVELOPMENT_AUTH_VERIFIED: ${DEVELOPMENT_AUTH_VERIFIED:-true}
+      DEVELOPMENT_ADMIN_AUTH_SUBJECT: ${DEVELOPMENT_ADMIN_AUTH_SUBJECT:-operator-a}
+      DEVELOPMENT_ADMIN_AUTH_DISPLAY_NAME: ${DEVELOPMENT_ADMIN_AUTH_DISPLAY_NAME:-Development Operator}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      REQUEST_BODY_MAX_BYTES: ${REQUEST_BODY_MAX_BYTES:-150000}
+      DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-8}
+      MAXIMUM_PAGE_SIZE: ${MAXIMUM_PAGE_SIZE:-50}
+      IDEMPOTENCY_TTL_HOURS: ${IDEMPOTENCY_TTL_HOURS:-24}
+      REPORT_BURST_LIMIT: ${REPORT_BURST_LIMIT:-5}
+      REPORT_WINDOW_SECONDS: ${REPORT_WINDOW_SECONDS:-600}
+      STORAGE_ADAPTER: ${STORAGE_ADAPTER:-local}
+      IMAGE_STORAGE_ROOT: /var/lib/muto/images
+      IMAGE_UPLOAD_TTL_MINUTES: ${IMAGE_UPLOAD_TTL_MINUTES:-60}
+      IMAGE_UPLOAD_BURST_LIMIT: ${IMAGE_UPLOAD_BURST_LIMIT:-30}
+      IMAGE_UPLOAD_WINDOW_SECONDS: ${IMAGE_UPLOAD_WINDOW_SECONDS:-3600}
+      EXPIRED_UPLOAD_RETENTION_DAYS: ${EXPIRED_UPLOAD_RETENTION_DAYS:-30}
+      STORAGE_ORPHAN_GRACE_HOURS: ${STORAGE_ORPHAN_GRACE_HOURS:-24}
+      REPORT_RETENTION_DAYS: ${REPORT_RETENTION_DAYS:-365}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+    command:
+      - /bin/sh
+      - -c
+      - .venv/bin/alembic -c alembic.ini upgrade head && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - muto_image_data:/var/lib/muto/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - .venv/bin/python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  muto_postgres_data:
+  muto_image_data:

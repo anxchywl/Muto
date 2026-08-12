@@ -1,0 +1,15 @@
+.git
+.github
+.dart_tool
+**/.dart_tool
+**/build
+**/coverage
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.coverage
+.env
+tmp
+.local
