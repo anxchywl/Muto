@@ -7,6 +7,7 @@ library;
 export 'src/application/muto_scope.dart' show MutoDependencies;
 export 'src/config/muto_config.dart' show MutoBackend, MutoConfig;
 export 'src/data/mock/sample_dependencies.dart' show createSampleDependencies;
+export 'src/data/remote/remote_dependencies.dart' show createRemoteDependencies;
 export 'src/l10n/generated/muto_localizations.dart' show MutoLocalizations;
 export 'src/l10n/muto_locales.dart' show MutoLocales;
 export 'src/l10n/muto_localizations_scope.dart' show MutoLocalizationsScope;

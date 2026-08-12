@@ -26,17 +26,29 @@ final class BundledImageLocation extends ImageLocation {
 }
 
 final class RemoteImageLocation extends ImageLocation {
-  const RemoteImageLocation(this.uri);
+  const RemoteImageLocation(this.uri, {this.headers = const {}});
 
   final Uri uri;
+  final Map<String, String> headers;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is RemoteImageLocation && other.uri == uri;
+      other is RemoteImageLocation &&
+          other.uri == uri &&
+          _mapsEqual(other.headers, headers);
 
   @override
-  int get hashCode => uri.hashCode;
+  int get hashCode =>
+      Object.hash(uri, Object.hashAllUnordered(headers.entries));
+
+  static bool _mapsEqual(Map<String, String> left, Map<String, String> right) {
+    if (left.length != right.length) return false;
+    for (final entry in left.entries) {
+      if (right[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
 }
 
 /// An image that has been staged but not yet redeemed, so it exists only in

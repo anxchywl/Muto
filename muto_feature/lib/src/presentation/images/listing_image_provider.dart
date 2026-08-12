@@ -13,9 +13,8 @@ ImageProvider? resolveListingImage(ImageLocator locator, ImageRef? ref) {
   final location = locator.locate(ref);
   return switch (location) {
     BundledImageLocation(:final assetPath) => AssetImage(assetPath),
-    RemoteImageLocation(:final uri) => CachedNetworkImageProvider(
-      uri.toString(),
-    ),
+    RemoteImageLocation(:final uri, :final headers) =>
+      CachedNetworkImageProvider(uri.toString(), headers: headers),
     MemoryImageLocation(:final bytes) => MemoryImage(bytes),
     null => null,
   };
