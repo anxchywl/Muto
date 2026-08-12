@@ -10,9 +10,9 @@ enum SessionStatus { idle, resolving, ready, expired, failed }
 
 /// Owns who the feature believes it is acting for.
 ///
-/// It never inspects or stores the host's token beyond the call that exchanges
-/// it, and it never decides verification or ownership — those come back from
-/// the authority that resolved the session.
+/// It never inspects or persists the host's token, and it never decides
+/// verification or ownership — those come back from the authority that
+/// resolved the session.
 final class SessionController extends ChangeNotifier {
   SessionController({
     required SessionRepository repository,

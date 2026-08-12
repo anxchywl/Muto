@@ -13,9 +13,9 @@ import 'shell/muto_shell.dart';
 
 /// A session handed to the feature by whatever is hosting it.
 ///
-/// The token is used to resolve an identity and is never stored. The feature
-/// asks for a new one through `onSessionExpired` rather than trying to refresh
-/// anything itself.
+/// The token is kept only in memory for authenticated requests. The feature
+/// asks for a new one through `onSessionExpired` rather than persisting or
+/// refreshing it itself.
 final class MutoHostSession {
   const MutoHostSession({required this.accessToken})
     : assert(accessToken != '', 'a host session needs a token');
@@ -35,18 +35,29 @@ class MutoFeature extends StatefulWidget {
     required this.dependencies,
     required this.config,
     this.onSessionExpired,
+    this.onDevelopmentRoleSwitch,
   }) : _session = session;
 
   final MutoHostSession _session;
   final MutoDependencies dependencies;
   final MutoConfig config;
   final VoidCallback? onSessionExpired;
+  final Future<void> Function()? onDevelopmentRoleSwitch;
 
   @override
   State<MutoFeature> createState() => _MutoFeatureState();
 }
 
 class _MutoFeatureState extends State<MutoFeature> {
+  @override
+  void initState() {
+    super.initState();
+    assert(
+      widget.dependencies.backend == widget.config.backend,
+      'dependencies must match the configured backend',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return MutoLocalizationsScope(
@@ -56,16 +67,23 @@ class _MutoFeatureState extends State<MutoFeature> {
         key: ValueKey<String>(widget._session.accessToken),
         dependencies: widget.dependencies,
         onSessionExpired: widget.onSessionExpired,
-        child: _SessionGate(accessToken: widget._session.accessToken),
+        child: _SessionGate(
+          accessToken: widget._session.accessToken,
+          onDevelopmentRoleSwitch: widget.onDevelopmentRoleSwitch,
+        ),
       ),
     );
   }
 }
 
 class _SessionGate extends StatefulWidget {
-  const _SessionGate({required this.accessToken});
+  const _SessionGate({
+    required this.accessToken,
+    required this.onDevelopmentRoleSwitch,
+  });
 
   final String accessToken;
+  final Future<void> Function()? onDevelopmentRoleSwitch;
 
   @override
   State<_SessionGate> createState() => _SessionGateState();
@@ -97,7 +115,10 @@ class _SessionGateState extends State<_SessionGate> {
             return Navigator(
               onGenerateRoute: (settings) => MaterialPageRoute<void>(
                 settings: settings,
-                builder: (_) => const MutoShell(),
+                builder: (_) => MutoShell(
+                  initialDestination: session.identity!.isAdmin ? 1 : 0,
+                  onDevelopmentRoleSwitch: widget.onDevelopmentRoleSwitch,
+                ),
               ),
             );
           case SessionStatus.idle:

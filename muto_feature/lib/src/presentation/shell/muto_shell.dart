@@ -11,13 +11,21 @@ import '../editor/listing_editor_sheet.dart';
 import '../favorites/favorites_screen.dart';
 import '../listing/listing_detail_screen.dart';
 import '../my_listings/my_listings_screen.dart';
+import '../operations/report_operations_screen.dart';
 
 /// The feature's own navigation surface.
 ///
 /// It keeps its stack inside a nested navigator so a host can push its own
 /// routes above the feature without the two fighting over one stack.
 class MutoShell extends StatefulWidget {
-  const MutoShell({super.key});
+  const MutoShell({
+    super.key,
+    this.initialDestination = 0,
+    this.onDevelopmentRoleSwitch,
+  });
+
+  final int initialDestination;
+  final Future<void> Function()? onDevelopmentRoleSwitch;
 
   @override
   State<MutoShell> createState() => _MutoShellState();
@@ -31,7 +39,9 @@ class _MutoShellState extends State<MutoShell> {
     GlobalKey<NavigatorState>(),
     GlobalKey<NavigatorState>(),
   ];
-  int _destination = 0;
+  late int _destination = widget.initialDestination;
+  int _browseTapCount = 0;
+  bool _switchingDevelopmentRole = false;
 
   // the FAB belongs to the root of "my listings", not to whatever screen got
   // pushed on top of it (a listing's own detail page, say), so the stack
@@ -60,11 +70,42 @@ class _MutoShellState extends State<MutoShell> {
     setState(() => _destination = index);
 
     final scope = MutoScope.of(context);
+    if (scope.session.identity?.isAdmin ?? false) {
+      if (index == 0) unawaited(scope.browse.refresh());
+      return;
+    }
     unawaited(switch (index) {
       1 => scope.favorites.refresh(),
       2 => scope.mine.refresh(),
       _ => scope.browse.refresh(),
     });
+  }
+
+  Future<void> _handleDestinationTap(int index) async {
+    const browseIndex = 0;
+    if (index != browseIndex) {
+      _browseTapCount = 0;
+      _selectDestination(index);
+      return;
+    }
+    final switchRole = widget.onDevelopmentRoleSwitch;
+    if (switchRole == null) {
+      _selectDestination(index);
+      return;
+    }
+    if (_switchingDevelopmentRole) return;
+    _browseTapCount += 1;
+    if (_browseTapCount < 5) {
+      if (_destination != index) _selectDestination(index);
+      return;
+    }
+    _browseTapCount = 0;
+    _switchingDevelopmentRole = true;
+    try {
+      await switchRole();
+    } finally {
+      _switchingDevelopmentRole = false;
+    }
   }
 
   Future<void> _openEditor() async {
@@ -90,6 +131,7 @@ class _MutoShellState extends State<MutoShell> {
   Widget build(BuildContext context) {
     final strings = MutoLocalizations.of(context);
     final session = MutoScope.of(context).session;
+    final isAdmin = session.identity?.isAdmin ?? false;
 
     // publishing belongs to the root of the student's own listings, so the
     // button lives there and nowhere else — not on a listing pushed on top
@@ -100,13 +142,14 @@ class _MutoShellState extends State<MutoShell> {
       body: IndexedStack(
         index: _destination,
         children: [
-          for (var i = 0; i < _navigators.length; i++)
+          for (var i = 0; i < (isAdmin ? 2 : _navigators.length); i++)
             Navigator(
               key: _navigators[i],
               observers: [_stackObservers[i]],
               onGenerateRoute: (settings) => MaterialPageRoute<void>(
                 settings: settings,
                 builder: (_) => switch (i) {
+                  1 when isAdmin => const ReportOperationsScreen(),
                   1 => FavoritesScreen(onOpenListing: _openListing),
                   2 => MyListingsScreen(onOpenListing: _openListing),
                   _ => BrowseScreen(onOpenListing: _openListing),
@@ -139,13 +182,13 @@ class _MutoShellState extends State<MutoShell> {
           : null,
       bottomNavigationBar: _BottomBar(
         current: _destination,
-        onSelected: _selectDestination,
-        labels: [
-          strings.navBrowse,
-          strings.navFavorites,
-          strings.navMyListings,
-        ],
-        icons: const [AppIcons.home, AppIcons.heart, AppIcons.request],
+        onSelected: (index) => unawaited(_handleDestinationTap(index)),
+        labels: isAdmin
+            ? [strings.navBrowse, strings.navReports]
+            : [strings.navBrowse, strings.navFavorites, strings.navMyListings],
+        icons: isAdmin
+            ? const [AppIcons.home, AppIcons.request]
+            : const [AppIcons.home, AppIcons.heart, AppIcons.request],
       ),
     );
   }

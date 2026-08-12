@@ -27,3 +27,31 @@ bool developmentAccessAllowed({
 /// accept any non-empty string. There is deliberately nothing here that could
 /// be mistaken for a secret or leak into a commit.
 const String developmentSessionToken = 'sample-session';
+
+const String _configuredBackend = String.fromEnvironment(
+  'MUTO_BACKEND',
+  defaultValue: 'sample',
+);
+
+const String configuredApiBaseUrl = String.fromEnvironment('MUTO_API_BASE_URL');
+
+const String configuredUserAccessToken = String.fromEnvironment(
+  'MUTO_ACCESS_TOKEN',
+  defaultValue: developmentSessionToken,
+);
+
+const String configuredAdminAccessToken = String.fromEnvironment(
+  'MUTO_ADMIN_ACCESS_TOKEN',
+  defaultValue: 'sample-admin-session',
+);
+
+bool get usesRemoteBackend {
+  switch (_configuredBackend) {
+    case 'sample':
+      return false;
+    case 'remote':
+      return true;
+    default:
+      throw StateError('MUTO_BACKEND must be sample or remote');
+  }
+}

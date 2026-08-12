@@ -44,4 +44,34 @@ void main() {
     expect(find.byType(MutoFeature), findsNothing);
     expect(find.textContaining('debug build'), findsOneWidget);
   });
+
+  testWidgets('five Browse taps switch between isolated dev roles', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const HostApp(allowDevelopmentAccess: true));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Favorites'), findsOneWidget);
+    for (var tap = 0; tap < 5; tap++) {
+      await tester.tap(find.text('Browse').last);
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reports'), findsOneWidget);
+    expect(find.text('Reports needing review'), findsOneWidget);
+
+    for (var tap = 0; tap < 5; tap++) {
+      await tester.tap(find.text('Browse').last);
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Reports'), findsNothing);
+  });
 }

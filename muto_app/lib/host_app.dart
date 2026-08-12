@@ -23,8 +23,39 @@ class HostApp extends StatefulWidget {
 }
 
 class _HostAppState extends State<HostApp> {
-  late final Future<MutoDependencies> _dependencies =
-      createSampleDependencies();
+  late final MutoConfig _config = _createConfig();
+  late final Future<MutoDependencies> _dependencies = _createDependencies();
+  String _accessToken = configuredUserAccessToken;
+
+  Future<void> _switchDevelopmentRole() async {
+    if (!isDevelopmentAccessAllowed) return;
+    setState(() {
+      _accessToken = _accessToken == configuredAdminAccessToken
+          ? configuredUserAccessToken
+          : configuredAdminAccessToken;
+    });
+  }
+
+  MutoConfig _createConfig() {
+    if (!usesRemoteBackend) return const MutoConfig.sample();
+    if (configuredApiBaseUrl.isEmpty) {
+      throw StateError('MUTO_API_BASE_URL is required in remote mode');
+    }
+    return MutoConfig.remote(
+      baseUri: Uri.parse(configuredApiBaseUrl),
+      allowInsecureHttp: true,
+    );
+  }
+
+  Future<MutoDependencies> _createDependencies() async {
+    if (_config.backend == MutoBackend.sample) {
+      return createSampleDependencies();
+    }
+    return createRemoteDependencies(
+      baseUri: _config.baseUri!,
+      allowInsecureHttp: true,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,12 +88,17 @@ class _HostAppState extends State<HostApp> {
                 if (dependencies == null) {
                   return const Scaffold(body: Center(child: AppLoader()));
                 }
-                return MutoFeature(
-                  session: MutoHostSession(
-                    accessToken: developmentSessionToken,
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  child: MutoFeature(
+                    key: ValueKey<String>(_accessToken),
+                    session: MutoHostSession(accessToken: _accessToken),
+                    dependencies: dependencies,
+                    config: _config,
+                    onDevelopmentRoleSwitch: _switchDevelopmentRole,
                   ),
-                  dependencies: dependencies,
-                  config: const MutoConfig.sample(),
                 );
               },
             ),
