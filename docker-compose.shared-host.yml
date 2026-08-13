@@ -1,0 +1,17 @@
+services:
+  backend:
+    networks:
+      - wished-proxy
+
+  monitor:
+    # depends_on maps merge by key, so this must fully replace the base
+    # file's `caddy` dependency rather than add to it — caddy never starts
+    # here (its dedicated-only profile isn't active on a shared host)
+    depends_on: !override
+      backend:
+        condition: service_healthy
+
+networks:
+  wished-proxy:
+    external: true
+    name: wished_wished-app

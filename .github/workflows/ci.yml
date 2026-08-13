@@ -327,7 +327,8 @@ jobs:
           sed -i 's/^CURSOR_SECRET=$/CURSOR_SECRET=test-cursor-secret-that-is-at-least-32-bytes/' /tmp/muto-production.env
           sed -i 's/^S3_ACCESS_KEY_ID=$/S3_ACCESS_KEY_ID=test-access/' /tmp/muto-production.env
           sed -i 's/^S3_SECRET_ACCESS_KEY=$/S3_SECRET_ACCESS_KEY=test-secret/' /tmp/muto-production.env
-          docker compose --env-file /tmp/muto-production.env -f docker-compose.production.yml config --quiet
+          docker compose --env-file /tmp/muto-production.env -f docker-compose.production.yml --profile dedicated config --quiet
+          docker compose --env-file /tmp/muto-production.env -f docker-compose.production.yml -f docker-compose.shared-host.yml config --quiet
 
       - uses: docker/setup-buildx-action@v3
 

@@ -6,9 +6,26 @@ env_file=${ENV_FILE:-$repo_dir/.env.production}
 deploy_ref=${DEPLOY_REF:-$(git -C "$repo_dir" rev-parse --verify HEAD)}
 image="muto-backend:$deploy_ref"
 compose="docker compose --env-file $env_file -f $repo_dir/docker-compose.production.yml"
+
+# a host already running another project's caddy on 80/443 fronts muto
+# through that proxy instead of starting muto's own
+target=${DEPLOYMENT_TARGET:-}
+if [ -z "$target" ]; then
+  if docker ps --format '{{.Names}}' | grep -qx wished-caddy; then
+    target=shared-host
+  else
+    target=dedicated
+  fi
+fi
+if [ "$target" = "shared-host" ]; then
+  compose="$compose -f $repo_dir/docker-compose.shared-host.yml"
+else
+  compose="$compose --profile dedicated"
+fi
+
 previous_image=$($compose ps -q backend | xargs -r docker inspect --format '{{.Config.Image}}')
 
-ENV_FILE=$env_file "$repo_dir/deploy/preflight.sh"
+DEPLOYMENT_TARGET=$target ENV_FILE=$env_file "$repo_dir/deploy/preflight.sh"
 docker build --pull --tag "$image" --file "$repo_dir/backend/Dockerfile" "$repo_dir"
 
 rollback() {

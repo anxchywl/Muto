@@ -17,10 +17,17 @@ value() {
   sed -n "s/^$1=//p" "$env_file" | tail -n 1
 }
 
-for name in POSTGRES_PASSWORD DATABASE_URL CURSOR_SECRET MUTO_API_DOMAIN ACME_EMAIL \
+for name in POSTGRES_PASSWORD DATABASE_URL CURSOR_SECRET MUTO_API_DOMAIN \
   S3_ENDPOINT_URL S3_BUCKET S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY; do
   [ -n "$(value "$name")" ] || fail "$name is required"
 done
+
+# a dedicated host runs its own caddy and needs an ACME account email; a
+# shared host fronts muto through another project's already-certificated
+# reverse proxy, so no local TLS request is ever made
+if [ "${DEPLOYMENT_TARGET:-dedicated}" = "dedicated" ]; then
+  [ -n "$(value ACME_EMAIL)" ] || fail "ACME_EMAIL is required"
+fi
 
 [ "$(value STORAGE_ADAPTER)" = "s3" ] || fail "STORAGE_ADAPTER must be s3"
 case "$(value S3_ENDPOINT_URL)" in

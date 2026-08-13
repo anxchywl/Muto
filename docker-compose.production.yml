@@ -132,6 +132,9 @@ services:
 
   caddy:
     image: caddy:2.10-alpine
+    # only started on a dedicated host; a shared host fronts muto through its
+    # own existing reverse proxy instead (see docker-compose.shared-host.yml)
+    profiles: [dedicated]
     restart: unless-stopped
     environment:
       MUTO_API_DOMAIN: ${MUTO_API_DOMAIN:?MUTO_API_DOMAIN is required}
@@ -163,6 +166,9 @@ services:
     volumes:
       - ./deploy/monitor.sh:/monitor.sh:ro
     command: ["sh", "/monitor.sh"]
+    # checks the public domain over HTTPS either way, so a dedicated host
+    # only needs its own caddy started first; a shared host overrides this
+    # to depend on the backend instead, since no local caddy runs there
     depends_on:
       caddy:
         condition: service_started
