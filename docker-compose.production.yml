@@ -140,7 +140,11 @@ services:
     restart: unless-stopped
     environment:
       MUTO_API_DOMAIN: ${MUTO_API_DOMAIN:?MUTO_API_DOMAIN is required}
-      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+      # required, but only enforced by preflight.sh when this service actually
+      # runs (DEPLOYMENT_TARGET=dedicated) — compose interpolates every
+      # service's env in the file regardless of active profile, so a hard
+      # `:?` here would fail a shared-host deploy that never starts caddy
+      ACME_EMAIL: ${ACME_EMAIL:-}
     ports:
       - "80:80"
       - "443:443"
