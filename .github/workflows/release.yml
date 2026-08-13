@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.38.5"
+  JAVA_VERSION: "17"
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache pub and gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: android-${{ runner.os }}-${{ hashFiles('muto_app/pubspec.lock', 'muto_app/android/**/*.kts', 'muto_app/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: android-${{ runner.os }}-
+
+      - name: Generate feature localizations
+        working-directory: muto_feature
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
+      - name: Build release artifact
+        working-directory: muto_app
+        run: flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
+
+      - name: Rename artifact to the tag
+        run: cp muto_app/build/app/outputs/flutter-apk/app-release.apk muto-${{ github.ref_name }}.apk
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: muto-${{ github.ref_name }}.apk
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

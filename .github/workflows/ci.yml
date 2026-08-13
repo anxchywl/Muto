@@ -21,8 +21,49 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      flutter: ${{ steps.filter.outputs.flutter }}
+      deploy: ${{ steps.filter.outputs.deploy }}
+      # a matrix job's `if` can't see the `matrix` context, so which Android
+      # variant to build for this event is decided here instead
+      android_matrix: ${{ steps.android_matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            flutter:
+              - 'app_ui/**'
+              - 'muto_app/**'
+              - 'muto_feature/**'
+              - 'muto_ui/**'
+            deploy:
+              - 'deploy/**'
+              - 'backend/Dockerfile'
+              - 'docker-compose.production.yml'
+
+      - name: Select android build variant
+        id: android_matrix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            echo 'matrix=[{"id":"release","name":"Release build","args":"--release --dart-define=ENABLE_DEV_ACCESS=false"}]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix=[{"id":"debug","name":"Debug build","args":"--debug"}]' >> "$GITHUB_OUTPUT"
+          fi
+
   backend-quality:
     name: Backend format, analyze and test
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     env:
       APP_ENV: test
@@ -64,6 +105,8 @@ jobs:
 
   backend-integration:
     name: Backend migration integration
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -131,6 +174,8 @@ jobs:
 
   quality:
     name: Format, analyze and test
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -181,9 +226,18 @@ jobs:
       - name: Enforce coverage floor
         run: ./scripts/coverage_floor.sh muto_feature/coverage/lcov.info 70
 
-  debug-build:
-    name: Debug build
+  android-build:
+    name: ${{ matrix.name }}
+    needs: changes
     runs-on: ubuntu-latest
+    # release is the stricter build and proves debug would compile too, so a push
+    # to main (which can deploy) only needs release; a pull request only needs the
+    # faster debug build for feedback. the changes job already picked exactly one
+    # variant for this event, so this only needs to gate on the area changing.
+    if: needs.changes.outputs.flutter == 'true'
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.changes.outputs.android_matrix) }}
 
     steps:
       - uses: actions/checkout@v4
@@ -215,52 +269,12 @@ jobs:
           flutter pub get
           flutter gen-l10n
 
-      - name: Build debug artifact
+      - name: Build ${{ matrix.id }} artifact
         working-directory: muto_app
-        run: flutter build apk --debug
+        run: flutter build apk ${{ matrix.args }}
 
-  release-guard:
-    name: Release build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: stable
-          cache: true
-
-      - name: Cache pub and gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: android-${{ runner.os }}-${{ hashFiles('muto_app/pubspec.lock', 'muto_app/android/**/*.kts', 'muto_app/android/gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: android-${{ runner.os }}-
-
-      - name: Generate feature localizations
-        working-directory: muto_feature
-        run: |
-          flutter pub get
-          flutter gen-l10n
-
-      # proves a shipped build compiles with development access switched off,
-      # and that the guard cannot be turned back on from a define
-      - name: Build release artifact
-        working-directory: muto_app
-        run: flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
-
-  secrets:
-    name: Secret scan
+  security:
+    name: Secret and dependency scan
     runs-on: ubuntu-latest
 
     steps:
@@ -279,13 +293,6 @@ jobs:
       - name: Scan repository history
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose
 
-  dependencies:
-    name: Dependency scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Install osv-scanner
         env:
           VERSION: "2.5.0"
@@ -303,6 +310,8 @@ jobs:
 
   deployment-validation:
     name: Deployment configuration
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -320,22 +329,41 @@ jobs:
           sed -i 's/^S3_SECRET_ACCESS_KEY=$/S3_SECRET_ACCESS_KEY=test-secret/' /tmp/muto-production.env
           docker compose --env-file /tmp/muto-production.env -f docker-compose.production.yml config --quiet
 
-      - name: Build production images
-        run: |
-          docker build -f backend/Dockerfile .
-          docker build -f deploy/backup.Dockerfile .
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build backup image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/backup.Dockerfile
+          push: false
+          cache-from: type=gha,scope=backup
+          cache-to: type=gha,mode=max,scope=backup
 
   deploy:
     name: Deploy temporary environment
-    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    # every dependency may legitimately be skipped when its area didn't change;
+    # only an actual failure should block the deploy
+    if: |
+      always() &&
+      github.event_name == 'push' && github.ref_name == github.event.repository.default_branch &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled')
     needs:
       - backend-quality
       - backend-integration
       - quality
-      - debug-build
-      - release-guard
-      - secrets
-      - dependencies
+      - android-build
+      - security
       - deployment-validation
     runs-on: ubuntu-latest
     environment: temporary
