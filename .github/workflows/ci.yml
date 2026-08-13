@@ -350,7 +350,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backup
 
   deploy:
-    name: Deploy temporary environment
+    name: Deploy staging environment
     # every dependency may legitimately be skipped when its area didn't change;
     # only an actual failure should block the deploy
     if: |
@@ -366,7 +366,7 @@ jobs:
       - security
       - deployment-validation
     runs-on: ubuntu-latest
-    environment: temporary
+    environment: staging
 
     steps:
       - name: Check deployment configuration
