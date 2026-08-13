@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-unredeemed-staging-objects",
+      "Status": "Enabled",
+      "Filter": {"Prefix": "staged/"},
+      "Expiration": {"Days": 2},
+      "AbortIncompleteMultipartUpload": {"DaysAfterInitiation": 1}
+    }
+  ]
+}
