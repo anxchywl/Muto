@@ -1,13 +1,11 @@
 name: CI
 
-# Continuous integration only. There is nothing to deploy from this repository
-# and no job here publishes, signs or uploads anything.
+# pull requests only validate. a default-branch push deploys only after every
+# required check succeeds and deployment secrets are configured
 
 on:
   push:
-    branches: [main]
   pull_request:
-    branches: [main]
 
 # read-only, and no job asks for more; a fork's pull request gets the same
 permissions:
@@ -20,8 +18,117 @@ concurrency:
 env:
   FLUTTER_VERSION: "3.38.5"
   JAVA_VERSION: "17"
+  PYTHON_VERSION: "3.12"
 
 jobs:
+  backend-quality:
+    name: Backend format, analyze and test
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://muto:muto@localhost:5432/muto
+      CURSOR_SECRET: test-cursor-secret-that-is-at-least-32-bytes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.21"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --frozen --extra dev
+
+      - name: Check backend formatting
+        working-directory: backend
+        run: uv run --frozen ruff format --check app migrations tests
+
+      - name: Lint backend
+        working-directory: backend
+        run: uv run --frozen ruff check app migrations tests
+
+      - name: Type-check backend
+        working-directory: backend
+        run: uv run --frozen mypy app
+
+      - name: Scan backend source
+        working-directory: backend
+        run: uv run --frozen bandit -q -r app
+
+      - name: Test backend
+        working-directory: backend
+        run: uv run --frozen pytest tests/unit -q
+
+  backend-integration:
+    name: Backend migration integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: muto
+          POSTGRES_USER: muto
+          POSTGRES_PASSWORD: muto
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U muto -d muto"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+asyncpg://muto:muto@localhost:5432/muto
+      TEST_DATABASE_URL: postgresql+asyncpg://muto:muto@localhost:5432/muto
+      CURSOR_SECRET: test-cursor-secret-that-is-at-least-32-bytes
+      TEST_S3_ENDPOINT: http://localhost:9000
+      TEST_S3_ACCESS_KEY_ID: muto-test-access
+      TEST_S3_SECRET_ACCESS_KEY: muto-test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.21"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --frozen --extra dev
+
+      - name: Start S3-compatible storage
+        run: |
+          docker run -d --name muto-minio -p 9000:9000 \
+            -e MINIO_ROOT_USER="$TEST_S3_ACCESS_KEY_ID" \
+            -e MINIO_ROOT_PASSWORD="$TEST_S3_SECRET_ACCESS_KEY" \
+            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:9000/minio/health/ready; then
+              exit 0
+            fi
+            echo "waiting for storage readiness: $attempt/30"
+            sleep 1
+          done
+          docker logs muto-minio
+          exit 1
+
+      - name: Apply migrations
+        working-directory: backend
+        run: uv run --frozen alembic -c alembic.ini upgrade head
+
+      - name: Check migration drift
+        working-directory: backend
+        run: uv run --frozen alembic -c alembic.ini check
+
+      - name: Test migrated database
+        working-directory: backend
+        run: uv run --frozen pytest tests --cov=app --cov-report=term-missing --cov-fail-under=80 -q
+
   quality:
     name: Format, analyze and test
     runs-on: ubuntu-latest
@@ -51,7 +158,12 @@ jobs:
       - name: Check formatting
         run: |
           for package in muto_ui muto_feature muto_app; do
-            (cd "$package" && dart format --output=none --set-exit-if-changed lib test)
+            (
+              cd "$package"
+              paths=(lib test)
+              [ -d integration_test ] && paths+=(integration_test)
+              dart format --output=none --set-exit-if-changed "${paths[@]}"
+            )
           done
 
       - name: Analyze
@@ -173,4 +285,80 @@ jobs:
       # the application lockfile is the only one committed; the library
       # packages resolve through it
       - name: Scan committed lockfiles
-        run: osv-scanner scan source --lockfile=muto_app/pubspec.lock
+        run: |
+          osv-scanner scan source --lockfile=muto_app/pubspec.lock
+          osv-scanner scan source --lockfile=backend/uv.lock
+
+  deployment-validation:
+    name: Deployment configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check deployment scripts
+        run: docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.11.0 deploy/*.sh
+
+      - name: Validate production Compose
+        run: |
+          cp deploy/production.env.example /tmp/muto-production.env
+          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=test-password/' /tmp/muto-production.env
+          sed -i 's/^CURSOR_SECRET=$/CURSOR_SECRET=test-cursor-secret-that-is-at-least-32-bytes/' /tmp/muto-production.env
+          sed -i 's/^S3_ACCESS_KEY_ID=$/S3_ACCESS_KEY_ID=test-access/' /tmp/muto-production.env
+          sed -i 's/^S3_SECRET_ACCESS_KEY=$/S3_SECRET_ACCESS_KEY=test-secret/' /tmp/muto-production.env
+          docker compose --env-file /tmp/muto-production.env -f docker-compose.production.yml config --quiet
+
+      - name: Build production images
+        run: |
+          docker build -f backend/Dockerfile .
+          docker build -f deploy/backup.Dockerfile .
+
+  deploy:
+    name: Deploy temporary environment
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    needs:
+      - backend-quality
+      - backend-integration
+      - quality
+      - debug-build
+      - release-guard
+      - secrets
+      - dependencies
+      - deployment-validation
+    runs-on: ubuntu-latest
+    environment: temporary
+
+    steps:
+      - name: Check deployment configuration
+        id: configured
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          if [ -n "$SSH_HOST" ] && [ -n "$SSH_USER" ] && [ -n "$SSH_KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::deployment secrets are not configured"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy tested revision
+        if: steps.configured.outputs.ready == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          envs: DEPLOY_SHA
+          script_stop: true
+          script: |
+            set -eu
+            cd /home/deploy/muto/repo
+            test -z "$(git status --porcelain)"
+            git fetch --prune origin
+            git checkout --detach "$DEPLOY_SHA"
+            DEPLOY_REF="$DEPLOY_SHA" deploy/deploy.sh
