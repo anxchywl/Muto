@@ -8,9 +8,11 @@ It is built as an **embeddable Flutter feature**, developed against a
 standalone host in this repository and intended to be mounted inside the Jas
 Wallet application later.
 
-> **There is no backend.** Everything runs on bundled sample data through mock
-> repositories, and the app shows a permanent `Sample data` banner while it
-> does. Nothing here has ever run against a server.
+> **Sample mode remains the default.** The Flutter feature also has an explicit
+> remote mode backed by the service in this repository. Production host
+> authentication is still deliberately unconfigured. Private S3-compatible
+> image storage and deployment automation are implemented, but need external
+> credentials and a hostname before they can be exercised.
 
 ## What a student can do
 
@@ -26,7 +28,8 @@ Wallet application later.
 
 Deliberately absent, as decisions rather than gaps: payments, checkout,
 delivery, cart, ratings, reviews, advertising, promoted listings, in-app
-messaging, and any moderation queue, verdict or appeal. The rules behind all of
+messaging, and any moderation verdict or appeal. Operators have a private,
+read-only report intake; it does not decide outcomes. The rules behind all of
 it are in [docs/PRODUCT.md](docs/PRODUCT.md).
 
 ## System map
@@ -50,8 +53,8 @@ The reasoning, the host contract and the security boundaries are in
 
 ## Local development
 
-Requires Flutter 3.38.5 / Dart 3.10.4, and Android or iOS tooling. No web, no
-desktop.
+Requires Flutter 3.38.5 / Dart 3.10.4, Python 3.12, `uv`, Docker, and Android
+or iOS tooling. No Flutter web or desktop target is supported.
 
 ```bash
 cp .env.example .env
@@ -62,46 +65,72 @@ cd muto_app && flutter run --dart-define-from-file=../.env
 ./scripts/verify.sh
 ```
 
-That second command is the whole gate — formatting, analysis with
-`--fatal-infos`, every test, and a line-coverage floor of 70% — and it is
-exactly what CI runs. Toolchain, builds, CI and everything else operational is
-in [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
+To run the backend and PostgreSQL:
+
+```bash
+docker compose up --build
+curl http://127.0.0.1:8000/health/ready
+```
+
+To run the standalone Flutter host against that service, change
+`MUTO_BACKEND=remote` in `.env`, keep the synthetic local token from the
+example, and run the same `flutter run` command. Remote mode never falls back
+to sample data if configuration or a request fails.
+
+The verification script is the local quality gate for backend and Flutter:
+formatting, linting, type analysis, security checks, tests, and coverage.
+Toolchain, migrations, builds and CI are in
+[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
 
 ## Environment variables
 
-One, and it only ever weakens a debug build:
+Flutter uses five compile-time values:
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `ENABLE_DEV_ACCESS` | `true` | Lets the standalone host open the marketplace with a placeholder session |
+| `MUTO_BACKEND` | `sample` | Selects `sample` or `remote` dependencies explicitly |
+| `MUTO_API_BASE_URL` | local API | Required by the host in remote mode |
+| `MUTO_ACCESS_TOKEN` | synthetic local token | Development student token, passed unchanged to the session repository |
+| `MUTO_ADMIN_ACCESS_TOKEN` | synthetic local token | Distinct development operator token |
 
-It is a Dart define, never read from the process environment at runtime. It
-cannot switch anything on in a release build: the gate is
+It cannot switch anything on in a release build: the gate is
 `kDebugMode && ENABLE_DEV_ACCESS`, the host refuses to open without it, and a
 test asserts that. See [.env.example](.env.example).
 
-No credential, token or key exists anywhere in this repository, and none is
-needed to run it.
+In a debug build, five taps on the Browse tab switch to the server-resolved
+operator account and five more switch back. The switch recreates the feature
+scope, so caches and authenticated image state cannot cross accounts. It is
+unavailable in release builds and neither token is an authorization claim by
+itself: the backend resolves the account and role.
+
+The same example file documents backend runtime settings. Local authentication
+accepts only the explicitly configured synthetic development token and the
+backend refuses to start with that adapter in production. The future host token
+format is not yet defined, so production authentication deliberately rejects
+every token.
 
 ## Limits worth knowing
 
-- **Mocked.** Listing reads and writes, status changes, seller profiles, search
-  suggestions, reports, pagination, version conflicts, idempotent publishes and
-  photo rules are all simulated in memory. Full list in
-  [docs/PRODUCT.md](docs/PRODUCT.md).
-- **Deferred.** No network call, no account system, no durability beyond the
-  unfinished draft and recent searches, and no backend behind the repository
-  interfaces.
-- **Security.** Every rule the mocks enforce is enforced on the client, which
-  makes it a specification and not a control until a server enforces it again.
+- **Two Flutter modes.** Sample mode simulates the complete product in memory.
+  Remote mode maps the same repository interfaces to the versioned API with
+  timeouts, structured failure mapping, idempotency and expected versions.
+- **Backend scope.** Identity, listings, favorites, seller profiles, reports,
+  operator report intake and staged images are implemented. Development uses
+  private local storage; deployment uses a private S3-compatible bucket and
+  controlled authenticated delivery through the API.
+- **Security.** The backend enforces identity and marketplace rules. The
+  Flutter client derives no identity fields, does not retry automatically, and
+  isolates session state and authenticated image caches across account changes.
   Boundaries and how to report a vulnerability are in
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#security-boundaries).
-- **Deployment.** There is none. CI builds a debug and a release artifact to
-  prove they compile and that development access cannot be enabled in a release
-  build; neither is signed, uploaded or distributed, and there is no
-  environment to roll back to.
-- **Jas Wallet.** Not integrated. The host contract exists and has never been
-  exercised against a real host.
+- **Deployment.** Production Compose, TLS routing, preflight checks, verified
+  backups, retention cleanup, readiness monitoring, application rollback and a
+  main-branch deployment job are present. They remain unverified remotely until
+  the server, DNS, object storage and GitHub environment secrets are supplied.
+  Flutter artifacts are still unsigned and undistributed.
+- **Jas Wallet.** Not integrated. Its token contract is still unresolved, and
+  the host contract has never been exercised against a real host.
 
 ## Licence
 

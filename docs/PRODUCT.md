@@ -112,8 +112,11 @@ Reporting is one way. There is no queue, no verdict, no appeal, and nothing
 that says whether anyone else reported the same listing. A retry sends nothing
 twice, and a burst is refused.
 
-Who reads a report, and what they can do about it, is undecided. Until that
-exists, reporting promises delivery and nothing more.
+An authenticated operator may read reports in a private intake surface. The
+surface never exposes reporter identity and has no verdict, appeal or automated
+enforcement. Operational retention and escalation are defined in
+[INFRASTRUCTURE.md](./INFRASTRUCTURE.md); reporting promises receipt and review,
+not a particular outcome.
 
 ## Photos
 
@@ -142,28 +145,23 @@ Every one of these is a decision, not a gap.
 
 ## What is simulated
 
-**There is no server.** Everything runs against sample data bundled with the
-app.
+Sample mode runs entirely against bundled data. Remote mode implements the
+same feature behavior through the backend and is selected explicitly by the
+host; it never falls back to sample records after a network or configuration
+failure.
 
 Simulated, and behaving as the real thing is specified to:
 
-- listing reads, writes and status changes, including who may make them
-- seller profiles, counted from the same listings the feed reads
-- search suggestions, drawn from the titles of what is listed
-- reports, including idempotent retries and a burst limit
-- pagination, page by page, with an opaque cursor
-- rejecting a write whose version is out of date
-- returning the same listing when a publish is retried with the same token
-- refusing a photo that breaks the rules, and staging one that passes
 - failure injection: offline, expired session, forced conflict
 
-Not simulated, and not present at all:
+Not implemented for production:
 
-- any network call
-- any account system; the standalone host uses a placeholder session and no
-  credential exists anywhere in this repository
-- durability. Published listings live in memory and are gone when the app
-  restarts. The unfinished draft and recent searches are the only things kept
-  on the device.
+- any production account resolution; the standalone host uses a placeholder
+  session and the backend's real host adapter fails closed until its token
+  contract is defined
+- provisioned production object storage and credentials; the private
+  S3-compatible adapter and lifecycle policy are implemented
 
-Nothing in this repository has run against a real server.
+Sample-mode publications live in memory and disappear when the app restarts.
+Remote-mode publications persist in PostgreSQL. Unfinished drafts and recent
+searches remain device-local in both modes.

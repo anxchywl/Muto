@@ -13,7 +13,8 @@ fact that changes has exactly one place to change.
 | [../README.md](../README.md) | Purpose, scope summary, setup, tests, env vars, and the limits worth knowing before reading further |
 | [PRODUCT.md](./PRODUCT.md) | Product behaviour and rules: lifecycle, visibility, contact, reporting, what is simulated and what is deferred |
 | This file | Package split, layers, host contract, state, account isolation, caching, images, localization, security boundaries, test strategy |
-| [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) | Toolchain, running, checks, builds, environment, CI, and what deployment does not exist |
+| [INFRASTRUCTURE.md](./INFRASTRUCTURE.md) | Toolchain, running, checks, builds, environments, CI, and deployment operations |
+| [API.md](./API.md) | Implemented endpoints and the mapping from Flutter repositories to the backend API |
 | [../AGENTS.md](../AGENTS.md) | Coding rules: layers, style, comments, tests, commits |
 
 ## Why four packages
@@ -57,11 +58,14 @@ the intended one.
 ```dart
 MutoFeature(
   session: MutoHostSession(accessToken: token),
-  dependencies: dependencies,
-  config: const MutoConfig(backend: MutoBackend.remote),
+  dependencies: createRemoteDependencies(baseUri: apiBaseUri),
+  config: MutoConfig.remote(baseUri: apiBaseUri),
   onSessionExpired: authController.refresh,
 )
 ```
+
+Remote configuration requires HTTPS by default. The standalone debug host
+opts into insecure HTTP only for local development.
 
 | Concern | Owner |
 |---|---|
@@ -84,19 +88,17 @@ Four things the host supplies:
    decide whether the student is verified — all of that comes back from
    whatever resolved the session. There is no role in this contract: a listing
    has an owner, and that is the only distinction the marketplace makes.
-2. **Dependencies.** A `MutoDependencies` with a real implementation of every
-   repository interface. Until a backend exists, `createSampleDependencies()`
-   is the only implementation there is.
+2. **Dependencies.** A `MutoDependencies` assembled by
+   `createSampleDependencies()` or `createRemoteDependencies()`.
 3. **A config.** `MutoBackend` records which data source the build was
-   assembled with, and must not say `remote` while sample repositories are
-   wired.
+   assembled with, and must match the dependency set passed beside it.
 4. **`onSessionExpired`.** Called once per token when a call comes back
    unauthorized, however many calls failed. The host refreshes and passes a new
    token, which rebuilds the scope so nothing from the previous session
    survives. Being offline is a different outcome and never asks the host to
    re-authenticate.
 
-Before a real host can mount this: a backend behind every repository interface,
+Before a real host can mount this: marketplace endpoints behind every repository interface,
 with the server enforcing every rule the mocks enforce today
 (see below); a decision on how a wallet session becomes
 a Muto identity and where verification is asserted; image hosting that accepts,
@@ -196,12 +198,17 @@ to English.
 
 No user-facing text exists outside the ARB files.
 
-## Where a backend attaches
+## Where the backend attaches
 
-Seven interfaces in `domain/repositories/`: listings, sellers, favorites,
-reports, images, sessions, and two local stores — drafts and search history.
-The sample implementations satisfy them today; an HTTP implementation would
-satisfy the same ones, and nothing above `data/` would change.
+Nine interfaces in `domain/repositories/`: listings, sellers, favorites,
+reports, report operations, images, sessions, and two local stores — drafts
+and search history.
+Sample and HTTP implementations satisfy them. The independent FastAPI service
+resolves external identities to stable internal users and implements the
+listing, favorites, seller, report and image contracts with PostgreSQL persistence.
+This includes server-authoritative lifecycle rules, keyset pagination,
+idempotent writes, optimistic concurrency, report and upload rate limiting,
+operator-only report intake and private staged image storage.
 
 Two of them are local by nature. Drafts and recent searches are the student's
 own text on their own device, and neither would move to a server if one
@@ -210,25 +217,17 @@ appeared.
 `MutoConfig.backend` records which was chosen, at the one place the feature is
 constructed rather than inferred deeper in the tree.
 
-Two of them are local by nature: drafts and recent searches are the student's
-own text on their own device, and neither would move to a server if one
-appeared.
-
-An HTTP implementation would live in `data/`, satisfy the same interfaces, and
-change nothing above it. What such a client must not trust is set out under
-[security boundaries](#security-boundaries).
+The Flutter HTTP implementation lives in `data/remote`, satisfies the same
+interfaces, and changes nothing above it. The wire mapping is in
+[API.md](./API.md).
 
 ## Security boundaries
 
-A client with no server behind it. Every rule the mock repositories enforce —
-ownership on every write, expected version on every update, allowed status
-transitions, contact on a detail read only, photo type and size and dimensions,
-idempotent publishes, a rate limit on reports — is enforced **on the client**.
-
-None of that is a security control. It is a specification, written as
-executable code, so the screens are built against the rules from the start. A
-server has to make every one of those decisions again and trust nothing the
-client sends.
+The backend now re-enforces listing ownership, verification, expected versions,
+status transitions, visibility, favorites, seller privacy, idempotent writes,
+self-report restrictions, report rate limiting, image ownership, image content
+validation and reference redemption without trusting identity or metadata from
+the client.
 
 | Boundary | Must be enforced by | What the client does |
 |---|---|---|
@@ -263,9 +262,15 @@ switch it on however the define is set: the host shows a refusal screen
 instead, a unit test asserts the logic, and CI builds a release artifact with
 the define off.
 
-The placeholder token is not a credential. It is a short constant string the
-sample repositories accept because they accept anything non-empty, and it
-authorises nothing.
+Five taps on Browse switch between separate user and operator development
+sessions; five more switch back. The callback exists only behind the debug
+gate, recreates the account scope, and never supplies an `is_admin` claim.
+Remote mode uses two distinct configured tokens and the backend resolves the
+operator role. Release builds cannot open this path.
+
+The sample placeholder tokens are not credentials. Remote development tokens
+must be random secrets supplied outside source control because the development
+backend treats them as bearer credentials.
 
 ### What is in the repository, and on the device
 
@@ -282,22 +287,48 @@ disk.
 
 ### Known limitations
 
-Every rule above is client-side only today. There is no certificate pinning,
-because there is no network layer. There is no threat model for a backend that
-does not exist. Dependencies are scanned by advisory in CI; a transitive Dart
-package with an open advisory can be reported but not fixed here.
+The remote client has a ten-second request timeout and no automatic retry.
+Every mutation carrying side-effect risk supplies an idempotency key. A late
+unauthorized response is applied only if it belongs to the current token, and
+authenticated image cache keys carry a non-secret session namespace so private
+bytes cannot be reused after an account switch. Superseded controller results
+are discarded, but the current `package:http` boundary does not actively abort
+an already-sent request. The backend's host
+authentication resolver intentionally
+rejects every production token because the issuer, audience, signature and
+verification claims are undecided. The S3 adapter, release scripts and CI
+deployment job are implemented but remain externally unverified until storage,
+DNS, server access and GitHub environment secrets exist. Dependencies are
+scanned by advisory in CI.
+
+### Threat model
+
+| Threat | Control | Remaining boundary |
+|---|---|---|
+| Forged ownership or verification | Request bodies contain neither; both come from the authenticated principal | Production host token validation is not yet implemented |
+| IDOR and identifier enumeration | UUID resources still pass through owner and visibility checks; hidden, removed and suspended-seller content has deliberate responses | General browse throttling remains an edge-proxy responsibility |
+| Replayed or duplicate mutations | User-and-operation-scoped idempotency records, request fingerprints and PostgreSQL advisory locks | Expired records are removed by scheduled maintenance |
+| Stale edits | Every listing write requires an expected version and conflicting writes return `409` | The client must reload before retrying a conflict |
+| Malicious or oversized uploads | Bounded streaming reads, signature decoding, pixel limits, animation rejection, metadata-stripping re-encoding, per-account slot limits and server-generated S3 keys | Bucket policy and credentials must be provisioned externally |
+| Hidden or deleted content leakage | Shared listing visibility rules apply to feeds, sellers, favorites, detail and controlled image reads | Cleanup is hourly; bucket lifecycle is the fallback for staged objects |
+| Account switching and expired tokens | Scope recreation, generation checks, stale-`401` suppression and per-session private image cache keys | The future host owns token refresh and replacement |
+| Malformed cursors | Signed opaque cursors are schema-checked and bound to account, filters and ordering | Cursor-secret rotation needs a deployment policy |
+| Report rate-limit bypass | Stable internal-account scope and serialized PostgreSQL checks | No general-purpose distributed limiter is added without demonstrated need |
+| Forged operator state | Operator access comes from the token resolver and every operations endpoint rechecks it | Final host role mapping awaits Jas Wallet auth design |
+| Log or response leakage | API access logs are off, proxy logs omit request headers, errors are structured, and responses omit stack traces, SQL, tokens and private paths | Alert delivery needs an external webhook |
 
 To report a vulnerability, open a private security advisory through the
 repository's Security tab rather than a public issue.
 
 ## Testing strategy
 
-`flutter_test` only, with hand-written fakes and no mocking package.
+Flutter uses `flutter_test` with hand-written fakes. Backend tests use pytest;
+database integration tests run against PostgreSQL rather than a mock.
 
 | Suite | Proves |
 |---|---|
 | `domain/` | Every ordered status pair, money and kind invariants, text, contact, search and report validation |
-| `data/` | Tolerant decoding, ownership, versions, idempotency, pagination, image rules, rate limiting |
+| `data/` | Wire decoding, endpoint mapping, failure mapping, account isolation, ownership, versions, idempotency, pagination, image rules, rate limiting |
 | `application/` | Account switching mid-flight, expiry, freshness, conflicts, debouncing, optimistic writes |
 | `presentation/` | Every screen in three languages, both themes, and screen-reader labels |
 | `boundaries/` | The layer rules above, by scanning imports |
@@ -306,5 +337,5 @@ The tests that matter most assert that something is *absent*: contact details
 missing from a feed response, sold listings missing from browse, a reserve
 action missing from a sold listing, a report action missing from your own.
 
-Not done, and not claimed: golden tests, integration tests on a device, and any
-test against a real server.
+Not done, and not claimed: golden tests, integration tests on a Flutter device,
+or an automated end-to-end Flutter run against a live backend.

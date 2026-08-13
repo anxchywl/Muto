@@ -12,7 +12,10 @@ conventions are in [../AGENTS.md](../AGENTS.md).
 | Flutter | 3.38.5 stable |
 | Dart | 3.10.4 (ships with that Flutter) |
 | Java | 17, for Android builds |
-| Python | 3, used by the coverage script |
+| Python | 3.12, for the backend |
+| uv | Python dependency and environment management |
+| PostgreSQL | 16 |
+| Docker | Local and deployment orchestration |
 
 Targets are Android and iOS. Web and desktop are not supported and are not
 tested.
@@ -32,15 +35,72 @@ file — but keeping it is the habit that matters once more defines exist.
 The app opens on sample data, in the device's language if that is English,
 Kazakh or Russian, and follows the system theme.
 
+The backend runs separately:
+
+```bash
+docker compose up --build
+curl http://127.0.0.1:8000/health/live
+curl http://127.0.0.1:8000/health/ready
+```
+
+Compose applies migrations before starting the API. PostgreSQL is bound to
+`127.0.0.1:54321` and the API to `127.0.0.1:8000`. A private named volume holds
+normalized development images; no host directory or public file server is
+exposed.
+
+Populate three idempotent synthetic listings after the service is ready:
+
+```bash
+docker compose exec backend .venv/bin/python -m app.commands.seed
+```
+
+The command is blocked in production and contains no contact details,
+credentials, photographs or real student records.
+
+To use the service from Flutter, set `MUTO_BACKEND=remote`,
+`MUTO_API_BASE_URL=http://127.0.0.1:8000`, `MUTO_ACCESS_TOKEN` to the same
+synthetic value as `DEVELOPMENT_AUTH_TOKEN`, and `MUTO_ADMIN_ACCESS_TOKEN` to
+the same value as `DEVELOPMENT_ADMIN_AUTH_TOKEN`, then restart `flutter run`. An
+Android emulator reaches the host through `http://10.0.2.2:8000`; a physical
+Android device needs a reachable development-machine address. Android permits
+cleartext traffic only in debug builds. iOS needs a local HTTPS endpoint because
+no broad App Transport Security exception is included. Production mode requires
+HTTPS and a real host auth adapter.
+
 ## Checks
 
 ```bash
 ./scripts/verify.sh
 ```
 
-That is the whole gate, and it is what CI runs: formatting, analysis with
-`--fatal-infos`, every test in every package, and a coverage floor of 70%
-measured over hand-written code. Run it before pushing.
+That is the database-independent local gate: backend formatting, linting,
+typing, Bandit and unit tests, followed by Flutter formatting, analysis, tests
+and the existing 70% feature coverage floor. Run it before pushing.
+
+Backend checks alone:
+
+```bash
+cd backend
+uv sync --frozen --extra dev
+uv run --frozen ruff format --check app migrations tests
+uv run --frozen ruff check app migrations tests
+uv run --frozen mypy app
+uv run --frozen bandit -q -r app
+uv run --frozen pytest tests/unit
+```
+
+Migration and PostgreSQL integration checks:
+
+```bash
+cd backend
+uv run --frozen alembic -c alembic.ini upgrade head
+uv run --frozen alembic -c alembic.ini check
+TEST_DATABASE_URL="$DATABASE_URL" uv run --frozen pytest tests --cov=app
+```
+
+The complete backend suite uses PostgreSQL and enforces the 80% backend
+coverage floor. Unit-only coverage is not used as a substitute for exercising
+database behavior.
 
 Individually, from inside a package directory:
 
@@ -104,12 +164,36 @@ states are visible; tests use `MockLatency.none()`.
 
 ## Environment variables
 
-One variable, documented in [../.env.example](../.env.example) and in the
-README. `.env` is ignored by git and must never be committed.
+[../.env.example](../.env.example) documents Flutter's explicit backend, API
+and token selection alongside backend runtime configuration. `.env` is ignored
+and must never be committed. Missing remote API configuration fails startup;
+remote requests never fall back to bundled sample data.
 
-Flutter reads defines at compile time. There is no runtime environment
-lookup anywhere in this repository, and no configuration file is read from
-disk at startup.
+Production defaults are fail-closed: host authentication rejects tokens until
+an adapter exists, API documentation is disabled, CORS has no allowed origin,
+development authentication is rejected when `APP_ENV=production`, and the
+local filesystem adapter is rejected in production. Production Compose also
+requires explicit S3 credentials and an HTTPS endpoint.
+
+Unredeemed uploads expire after 60 minutes by default. Local cleanup can be run
+manually:
+
+```bash
+cd backend
+uv run --frozen python -m app.commands.cleanup_images
+uv run --frozen python -m app.commands.reconcile_storage
+uv run --frozen python -m app.commands.cleanup_records
+```
+
+The first command processes a bounded batch with row locking, deletes private
+bytes and marks the upload expired. Reconciliation deletes storage objects that
+have had no database reference for 24 hours, covering partial write failures.
+The final command removes expired idempotency records, expired upload metadata
+after 30 days, and reports after 365 days by default. Production Compose runs
+all three hourly. The bucket lifecycle independently
+expires `staged/` objects after two days, covering a database/storage partial
+failure. Redeemed images remain until a listing is removed or drops the image;
+that release makes the object immediately eligible for cleanup.
 
 ## Continuous integration
 
@@ -121,27 +205,86 @@ SDK, the pub cache and Gradle.
 
 | Job | Fails when |
 |---|---|
+| `backend-quality` | Backend formatting, linting, typing, Bandit or unit tests fail |
+| `backend-integration` | A migration, schema drift check, real PostgreSQL test or the 80% backend coverage floor fails |
 | `quality` | Anything is unformatted, any analyzer note appears, a test fails, or coverage drops below the floor |
 | `debug-build` | The app does not compile for a device |
 | `release-guard` | The release build fails, or development access could be enabled in one |
 | `secrets` | `gitleaks` finds a credential pattern anywhere in the history |
 | `dependencies` | `osv-scanner` finds a known advisory in the committed lockfile |
+| `deployment-validation` | Shell scripts, production Compose or production images are invalid |
 
-No job needs a secret, which is what makes running on pull requests from forks
-safe. Any job that later needs one must not run on untrusted pull requests.
+Validation jobs need no secret, which keeps pull requests from forks safe. The
+`deploy` job runs only for a tested default-branch push, uses the protected `temporary`
+environment, and skips when its three SSH secrets are absent.
 
-**The workflow has never executed** — this repository has no remote, so there
-is no run to point at. Every job has been reproduced locally, but treat CI as
-unproven until a run goes green.
+The repository has an `origin` remote, but no workflow run was inspected during
+this local backend work. Treat CI as unverified until these jobs run green on
+GitHub.
 
-### What is deliberately absent
+## Deployment
 
-There is no deployment, release, Docker, database or backend job, because none
-of those things exist: no server, no store listing, no signing key, nothing
-versioned or distributed from here. The release build is a compile check, not
-an artifact anyone installs.
+`docker-compose.production.yml` runs PostgreSQL, the API, private S3-backed
+maintenance, daily database backups, Caddy TLS routing and a readiness monitor.
+Copy either `deploy/temporary.env.example` for the current debug-only remote
+environment or `deploy/production.env.example` after real host authentication
+exists. Store the result as `.env.production`, owned by `deploy` with mode 600.
 
-If a backend or a distribution channel is added, deployment belongs in a
-separate workflow — gated on a protected environment with explicit approval, an
-immutable release identifier, a health check, a smoke test and a written
-rollback. None of that exists, and nothing here should be read as if it did.
+Required external inputs are:
+
+- a DNS name whose A/AAAA record reaches the server on ports 80 and 443
+- a private S3-compatible media bucket and scoped object credentials
+- a separate backup bucket, scoped credentials and an age recipient for
+  encrypted offsite backups in production
+- an optional alert webhook; without it failures remain visible only in logs
+- `SSH_HOST`, `SSH_USER` and `SSH_PRIVATE_KEY` secrets in the GitHub
+  `temporary` environment
+
+Configure and verify the image bucket from the backup image:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml \
+  run --rm -e IMAGE_LIFECYCLE_FILE=/usr/local/share/muto/image-lifecycle.json \
+  backup /usr/local/bin/configure-storage.sh
+```
+
+The check fails if the bucket ACL grants public or broad authenticated-user
+access, then installs the staged-object lifecycle. The application never gives
+clients object credentials or direct object keys; controlled image delivery
+continues through the authenticated API.
+
+Deploy from the server repository with:
+
+```bash
+DEPLOY_REF=$(git rev-parse HEAD) deploy/deploy.sh
+```
+
+Preflight checks secrets and secure storage configuration. Deployment builds an
+immutable commit-tagged backend image, starts PostgreSQL, creates and validates
+a custom-format backup, runs the forward migration as a one-off job, starts the
+new application, checks public readiness and verifies backup freshness. If the
+application fails, it restores the previous image. Migrations must remain
+backward-compatible because automatic database downgrade is intentionally not
+attempted during rollback.
+
+`deploy/restore.sh` verifies a selected dump, requires typing `restore`, takes a
+fresh backup, restores in one transaction, reapplies migrations and restarts
+the API. A restore test must be run in staging before treating backups as
+operationally proven.
+
+Reports are visible only to the server-resolved operator role, without reporter
+identity. Operators review the intake at least daily. Prohibited or safety
+reports are escalated immediately through the institution's approved security
+channel; other reports are reviewed within two business days. Reports expire
+after 365 days unless institutional policy requires a different configured
+period. There is no verdict, appeal or automated enforcement workflow.
+
+The manual `Live backend validation` workflow runs the synthetic authentication,
+role isolation, private upload, redemption, controlled download and cleanup
+journey on Android and iOS. It requires `MUTO_STAGING_API_URL`,
+`MUTO_STAGING_USER_TOKEN` and `MUTO_STAGING_ADMIN_TOKEN` repository secrets.
+
+Still deferred: Jas Wallet token validation, real signing and host distribution,
+a final privacy review, a remotely observed green workflow, staging restore
+evidence, and live-device poor-network testing. The repository contains the
+procedures; it does not claim those external checks have happened.
