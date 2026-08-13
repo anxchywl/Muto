@@ -84,6 +84,11 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # declared explicitly (rather than relying on implicit default-network
+    # membership) so the shared-host overlay's extra network *adds* to this
+    # list instead of silently replacing it and cutting off postgres access
+    networks:
+      - default
 
   maintenance:
     image: ${BACKEND_IMAGE:-muto-backend:local}
