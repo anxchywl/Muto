@@ -1,0 +1,69 @@
+name: Live backend validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-backend-validation
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.38.5"
+
+jobs:
+  android:
+    name: Android live backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        working-directory: muto_app
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          script: >-
+            cd muto_app && flutter test integration_test/live_backend_test.dart
+            -d emulator-5554
+            --dart-define=MUTO_API_BASE_URL=${{ secrets.MUTO_STAGING_API_URL }}
+            --dart-define=MUTO_ACCESS_TOKEN=${{ secrets.MUTO_STAGING_USER_TOKEN }}
+            --dart-define=MUTO_ADMIN_ACCESS_TOKEN=${{ secrets.MUTO_STAGING_ADMIN_TOKEN }}
+
+  ios:
+    name: iOS live backend
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        working-directory: muto_app
+      - name: Start simulator
+        run: |
+          device=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(device["udid"] for runtime in data["devices"].values() for device in runtime if "iPhone" in device["name"]))')
+          xcrun simctl boot "$device" || true
+          open -a Simulator
+      - name: Run live integration
+        working-directory: muto_app
+        run: >-
+          flutter test integration_test/live_backend_test.dart
+          -d ios
+          --dart-define=MUTO_API_BASE_URL=${{ secrets.MUTO_STAGING_API_URL }}
+          --dart-define=MUTO_ACCESS_TOKEN=${{ secrets.MUTO_STAGING_USER_TOKEN }}
+          --dart-define=MUTO_ADMIN_ACCESS_TOKEN=${{ secrets.MUTO_STAGING_ADMIN_TOKEN }}
