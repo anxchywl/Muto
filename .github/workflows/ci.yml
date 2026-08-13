@@ -209,6 +209,12 @@ jobs:
           key: android-${{ runner.os }}-${{ hashFiles('muto_app/pubspec.lock', 'muto_app/android/**/*.kts', 'muto_app/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: android-${{ runner.os }}-
 
+      - name: Generate feature localizations
+        working-directory: muto_feature
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
       - name: Build debug artifact
         working-directory: muto_app
         run: flutter build apk --debug
@@ -240,6 +246,12 @@ jobs:
             ~/.gradle/wrapper
           key: android-${{ runner.os }}-${{ hashFiles('muto_app/pubspec.lock', 'muto_app/android/**/*.kts', 'muto_app/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: android-${{ runner.os }}-
+
+      - name: Generate feature localizations
+        working-directory: muto_feature
+        run: |
+          flutter pub get
+          flutter gen-l10n
 
       # proves a shipped build compiles with development access switched off,
       # and that the guard cannot be turned back on from a define
