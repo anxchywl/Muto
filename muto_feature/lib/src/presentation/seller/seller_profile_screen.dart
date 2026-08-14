@@ -155,11 +155,13 @@ class _Header extends StatelessWidget {
     final resolved = profile;
 
     // the name is known from the listing, so a failed profile read leaves the
-    // header standing rather than replacing the page with an error
+    // header standing rather than replacing the page with an error. the
+    // listing count folds into the same line as flowing text rather than a
+    // second chip competing for attention next to it
     final detail = switch ((resolved, failed)) {
-      (final SellerProfile value, _) => strings.sellerSince(
-        labels.monthAndYear(value.firstListedAt),
-      ),
+      (final SellerProfile value, _) =>
+        '${strings.sellerSince(labels.monthAndYear(value.firstListedAt))} · '
+            '${strings.listingCount(value.activeListingCount)}',
       (null, true) => strings.sellerDetailsUnavailable,
       (null, false) => null,
     };
@@ -197,25 +199,6 @@ class _Header extends StatelessWidget {
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
-                  ),
-                ],
-                if (resolved != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      if (resolved.isVerified)
-                        MetaChip(
-                          label: strings.sellerVerified,
-                          tone: MetaTone.accent,
-                        ),
-                      MetaChip(
-                        label: strings.listingCount(
-                          resolved.activeListingCount,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ],

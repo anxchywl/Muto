@@ -276,6 +276,9 @@ abstract class AppIcons {
   /// Informational (SF: info.circle.fill).
   static const AppIconData info     = MaterialIcon(LucideIcons.info);
 
+  /// Report / flag content (SF: flag.fill).
+  static const AppIconData flag     = MaterialIcon(LucideIcons.flag);
+
   // ─────────────────────────────────────────────────────────────────────────
   // WEATHER  (SF: sun.max · moon.fill · wind · cloud.sun.fill)
   // ─────────────────────────────────────────────────────────────────────────

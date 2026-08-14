@@ -138,6 +138,11 @@ class _MutoShellState extends State<MutoShell> {
     final showsCompose =
         session.canPublish && _destination == 2 && _stackDepths[2] <= 1;
 
+    // the bar belongs to the three destinations themselves, not to whatever
+    // got pushed on top of one (a listing's detail, a seller's profile) —
+    // those read as their own full screens, not a tab with a bar bolted on
+    final showsBottomBar = _stackDepths[_destination] <= 1;
+
     return Scaffold(
       body: IndexedStack(
         index: _destination,
@@ -180,16 +185,22 @@ class _MutoShellState extends State<MutoShell> {
               ),
             )
           : null,
-      bottomNavigationBar: _BottomBar(
-        current: _destination,
-        onSelected: (index) => unawaited(_handleDestinationTap(index)),
-        labels: isAdmin
-            ? [strings.navBrowse, strings.navReports]
-            : [strings.navBrowse, strings.navFavorites, strings.navMyListings],
-        icons: isAdmin
-            ? const [AppIcons.home, AppIcons.request]
-            : const [AppIcons.home, AppIcons.heart, AppIcons.request],
-      ),
+      bottomNavigationBar: showsBottomBar
+          ? _BottomBar(
+              current: _destination,
+              onSelected: (index) => unawaited(_handleDestinationTap(index)),
+              labels: isAdmin
+                  ? [strings.navBrowse, strings.navReports]
+                  : [
+                      strings.navBrowse,
+                      strings.navFavorites,
+                      strings.navMyListings,
+                    ],
+              icons: isAdmin
+                  ? const [AppIcons.home, AppIcons.request]
+                  : const [AppIcons.home, AppIcons.heart, AppIcons.request],
+            )
+          : null,
     );
   }
 }

@@ -91,7 +91,6 @@ void main() {
       await _openSeller(tester);
 
       expect(find.text('Madina'), findsWidgets);
-      expect(find.text('Verified student'), findsOneWidget);
     });
 
     testWidgets('lists what else they have, and not what they sold', (
@@ -150,20 +149,20 @@ void main() {
     testWidgets('is offered on someone else\'s listing', (tester) async {
       await _openListing(tester, _lamp);
 
-      expect(find.text('Report this listing'), findsOneWidget);
+      expect(find.byTooltip('Report this listing'), findsOneWidget);
     });
 
     testWidgets('is never offered on your own', (tester) async {
       await _openListing(tester, _lamp, viewer: _madina);
 
-      expect(find.text('Report this listing'), findsNothing);
+      expect(find.byTooltip('Report this listing'), findsNothing);
       expect(find.text('Your listing'), findsOneWidget);
     });
 
     testWidgets('sends once a reason is chosen, and says so', (tester) async {
       await _openListing(tester, _lamp);
 
-      await tester.tap(find.text('Report this listing'));
+      await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Misleading'));
       await tester.pumpAndSettle();
@@ -179,7 +178,7 @@ void main() {
     ) async {
       await _openListing(tester, _lamp);
 
-      await tester.tap(find.text('Report this listing'));
+      await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Something else'));
       await tester.pumpAndSettle();
@@ -198,7 +197,7 @@ void main() {
       final faults = MockFaults();
       await _openListing(tester, _lamp, faults: faults);
 
-      await tester.tap(find.text('Report this listing'));
+      await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Not allowed'));
       await tester.pumpAndSettle();

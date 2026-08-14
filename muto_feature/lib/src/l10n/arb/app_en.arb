@@ -56,10 +56,17 @@
   "kindSale": "For sale",
   "kindExchange": "Swap",
   "kindGiveaway": "Free",
+  "kindDescriptionSale": "Priced to buy",
+  "kindDescriptionExchange": "Open to trading for something else",
+  "kindDescriptionGiveaway": "No charge to take it",
   "conditionNew": "New",
   "conditionLikeNew": "Like new",
   "conditionGood": "Good",
   "conditionWorn": "Worn",
+  "conditionDescriptionNew": "Unused, in original condition",
+  "conditionDescriptionLikeNew": "Barely used, looks new",
+  "conditionDescriptionGood": "Used but well kept",
+  "conditionDescriptionWorn": "Shows visible wear from use",
   "categoryTextbooks": "Textbooks",
   "categoryElectronics": "Electronics",
   "categoryFurniture": "Furniture",
@@ -153,16 +160,6 @@
   "contactPhone": "Phone",
   "actionCopy": "Copy",
   "copiedToClipboard": "Copied",
-  "leaveAppTitle": "Open outside Muto?",
-  "leaveAppMessage": "This opens {destination} in another app.",
-  "@leaveAppMessage": {
-    "placeholders": {
-      "destination": {
-        "type": "String"
-      }
-    }
-  },
-  "actionOpen": "Open",
   "listingUnavailableTitle": "Listing unavailable",
   "listingRemovedMessage": "The seller took this listing down.",
   "listingNotFoundMessage": "This listing does not exist, or it is no longer shared.",
@@ -272,7 +269,6 @@
       }
     }
   },
-  "sellerVerified": "Verified student",
   "sellerSince": "Listing since {date}",
   "@sellerSince": {
     "description": "When the seller's first listing appeared, month and year",

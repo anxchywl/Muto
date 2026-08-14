@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muto_feature/muto_feature.dart';
@@ -96,30 +97,47 @@ void main() {
     );
   });
 
-  testWidgets('shows the seller contact only after asking', (tester) async {
+  testWidgets('shows the seller contact right on the page', (tester) async {
     await _openListing(tester, 'Small study lamp, clip-on');
-
-    // the detail screen itself never prints the contact
-    expect(find.textContaining('@sample_madina'), findsNothing);
-
-    await tester.tap(find.text('Contact seller'));
-    await tester.pumpAndSettle();
 
     expect(find.text('@sample_madina'), findsOneWidget);
     expect(find.text('Telegram'), findsOneWidget);
   });
 
-  testWidgets('names the destination before leaving the app', (tester) async {
+  testWidgets('copies a contact channel when its row is tapped', (
+    tester,
+  ) async {
     await _openListing(tester, 'Small study lamp, clip-on');
-    await tester.tap(find.text('Contact seller'));
+
+    await tester.ensureVisible(find.text('@sample_madina'));
+
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await tester.tap(find.text('@sample_madina'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Open').first);
-    await tester.pumpAndSettle();
+    expect(copied, '@sample_madina');
+    expect(find.text('Copied'), findsOneWidget);
 
-    expect(find.text('Open outside Muto?'), findsOneWidget);
-    expect(find.textContaining('https://t.me/sample_madina'), findsOneWidget);
-    expect(find.text('Cancel'), findsOneWidget);
+    // a toast holds a timer of its own, which the test has to let expire
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('an exchange says what the seller is looking for', (

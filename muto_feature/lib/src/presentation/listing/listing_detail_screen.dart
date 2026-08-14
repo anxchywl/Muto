@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:muto_ui/muto_ui.dart';
 
 import '../../application/muto_scope.dart';
@@ -15,7 +16,6 @@ import '../images/listing_image_provider.dart';
 import '../report/report_sheet.dart';
 import '../seller/seller_profile_screen.dart';
 import 'contact_channels.dart';
-import 'contact_sheet.dart';
 import 'owner_actions.dart';
 
 /// One listing in full.
@@ -76,16 +76,29 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     );
     final listing = _listing;
     final failure = _failure;
+    final identity = MutoScope.of(context).session.identity;
+    final isOwner =
+        listing != null && identity != null && listing.isOwnedBy(identity);
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.listingDetailTitle)),
+      appBar: AppBar(
+        title: Text(strings.listingDetailTitle),
+        actions: [
+          if (listing != null && !isOwner)
+            _ReportAction(listingId: listing.id, labels: labels),
+        ],
+      ),
       body: switch ((listing, failure)) {
         (null, final MutoFailure f) => _Unavailable(
           failure: f,
           strings: strings,
         ),
         (null, null) => const Center(child: AppLoader()),
-        (final Listing value, _) => _Content(listing: value, labels: labels),
+        (final Listing value, _) => _Content(
+          listing: value,
+          labels: labels,
+          isOwner: isOwner,
+        ),
       },
     );
   }
@@ -126,10 +139,15 @@ class _Unavailable extends StatelessWidget {
 }
 
 class _Content extends StatelessWidget {
-  const _Content({required this.listing, required this.labels});
+  const _Content({
+    required this.listing,
+    required this.labels,
+    required this.isOwner,
+  });
 
   final Listing listing;
   final ListingLabels labels;
+  final bool isOwner;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +156,6 @@ class _Content extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final identity = scope.session.identity;
     final isVerified = identity?.isVerified ?? false;
-    final isOwner = identity != null && listing.isOwnedBy(identity);
     final channels = contactChannelsOf(listing.contact);
     final notice = _noticeFor(listing.status, strings);
 
@@ -193,6 +210,14 @@ class _Content extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${labels.kindDescription(listing.kind)} · '
+                '${labels.conditionDescription(listing.condition)}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
               if (listing.description.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.lg),
                 _Section(
@@ -209,8 +234,10 @@ class _Content extends StatelessWidget {
                   body: listing.wantedItems!,
                 ),
               ],
-              const SizedBox(height: AppSpacing.lg),
-              _SellerRow(listing: listing, strings: strings),
+              if (!isOwner) ...[
+                const SizedBox(height: AppSpacing.lg),
+                _SellerRow(listing: listing, strings: strings),
+              ],
               const SizedBox(height: AppSpacing.xl),
               if (isOwner)
                 _OwnerActions(listing: listing, strings: strings)
@@ -223,21 +250,7 @@ class _Content extends StatelessWidget {
                 )
               else if (channels.isNotEmpty &&
                   listing.status != ListingStatus.sold)
-                AppPrimaryButton(
-                  text: strings.actionContactSeller,
-                  size: AppButtonSize.large,
-                  onPressed: () => unawaited(
-                    showContactSheet(
-                      context,
-                      listing: listing,
-                      strings: strings,
-                    ),
-                  ),
-                ),
-              if (!isOwner) ...[
-                const SizedBox(height: AppSpacing.sm),
-                _ReportAction(listingId: listing.id, labels: labels),
-              ],
+                _ContactList(channels: channels, strings: strings),
               const SizedBox(height: AppSpacing.xl),
             ],
           ),
@@ -304,8 +317,9 @@ class _SellerRow extends StatelessWidget {
   }
 }
 
-/// Reporting sits below the contact action, quiet but reachable. It is not an
-/// owner's action, and it never appears on a listing the reader owns.
+/// A flag in the app bar, reachable but out of the way of the primary
+/// content. It is not an owner's action, and it never appears on a listing
+/// the reader owns.
 class _ReportAction extends StatelessWidget {
   const _ReportAction({required this.listingId, required this.labels});
 
@@ -316,11 +330,13 @@ class _ReportAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = labels.strings;
 
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: AppTextButton(
-        text: strings.actionReportListing,
-        textColor: AppColors.textSecondary,
+    return Semantics(
+      button: true,
+      label: strings.actionReportListing,
+      excludeSemantics: true,
+      child: IconButton(
+        icon: const AppIcon(AppIcons.flag),
+        tooltip: strings.actionReportListing,
         onPressed: () => unawaited(_open(context)),
       ),
     );
@@ -334,6 +350,106 @@ class _ReportAction extends StatelessWidget {
     );
     if (sent != true || !context.mounted) return;
     AppToast.showSuccess(context, labels.strings.reportSent);
+  }
+}
+
+/// The seller's contact details, sitting in the page itself rather than
+/// behind a button. Tapping a row copies it — that is the whole interaction.
+class _ContactList extends StatelessWidget {
+  const _ContactList({required this.channels, required this.strings});
+
+  final List<ContactChannel> channels;
+  final MutoLocalizations strings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          strings.actionContactSeller,
+          style: AppTextStyles.labelMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        for (final channel in channels)
+          _ContactRow(channel: channel, strings: strings),
+      ],
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  const _ContactRow({required this.channel, required this.strings});
+
+  final ContactChannel channel;
+  final MutoLocalizations strings;
+
+  String get _label => switch (channel.medium) {
+    ContactMedium.telegram => strings.contactTelegram,
+    ContactMedium.email => strings.contactEmail,
+    ContactMedium.phone => strings.contactPhone,
+  };
+
+  AppIconData get _icon => switch (channel.medium) {
+    ContactMedium.telegram => AppIcons.telegram,
+    ContactMedium.email => AppIcons.email,
+    ContactMedium.phone => AppIcons.phone,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+
+    return Semantics(
+      button: true,
+      label: '${strings.actionCopy} $_label $_label ${channel.display}',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: AppSpacing.borderRadiusMd,
+        onTap: () => unawaited(_copy(context)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Row(
+            children: [
+              AppIcon(_icon, size: 20, color: AppColors.iconSecondary),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _label,
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      channel.display,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: isLight
+                            ? AppColors.textPrimary
+                            : AppColors.textPrimaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AppIcon(AppIcons.copy, size: 18, color: AppColors.iconSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _copy(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: channel.display));
+    if (!context.mounted) return;
+    AppToast.showSuccess(context, strings.copiedToClipboard);
   }
 }
 

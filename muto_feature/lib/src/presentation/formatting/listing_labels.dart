@@ -72,6 +72,19 @@ final class ListingLabels {
     }
   }
 
+  /// What the kind means in practice — shown as a caption under its chip
+  /// rather than left for the reader to infer from a single word.
+  String kindDescription(ListingKind value) {
+    switch (value) {
+      case ListingKind.sale:
+        return strings.kindDescriptionSale;
+      case ListingKind.exchange:
+        return strings.kindDescriptionExchange;
+      case ListingKind.giveaway:
+        return strings.kindDescriptionGiveaway;
+    }
+  }
+
   String condition(ListingCondition value) {
     switch (value) {
       case ListingCondition.brandNew:
@@ -82,6 +95,21 @@ final class ListingLabels {
         return strings.conditionGood;
       case ListingCondition.worn:
         return strings.conditionWorn;
+    }
+  }
+
+  /// What the condition means in practice — shown as a caption under its
+  /// chip rather than left for the reader to infer from a single word.
+  String conditionDescription(ListingCondition value) {
+    switch (value) {
+      case ListingCondition.brandNew:
+        return strings.conditionDescriptionNew;
+      case ListingCondition.likeNew:
+        return strings.conditionDescriptionLikeNew;
+      case ListingCondition.good:
+        return strings.conditionDescriptionGood;
+      case ListingCondition.worn:
+        return strings.conditionDescriptionWorn;
     }
   }
 
