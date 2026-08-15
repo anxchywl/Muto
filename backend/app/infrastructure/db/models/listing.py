@@ -76,6 +76,7 @@ class Listing(UuidPrimaryKeyMixin, TimestampMixin, Base):
         ),
         Index("ix_listings_owner_updated", "owner_id", text("updated_at DESC")),
         Index("ix_listings_status_created", "status", text("created_at DESC")),
+        Index("ix_listings_status_expires", "status", "expires_at"),
         Index("ix_listings_category_status", "category", "status"),
         Index("ix_listings_kind_status", "kind", "status"),
         Index("ix_listings_condition_status", "condition", "status"),
@@ -96,6 +97,11 @@ class Listing(UuidPrimaryKeyMixin, TimestampMixin, Base):
     wanted_items: Mapped[str | None] = mapped_column(String(200), nullable=True)
     status: Mapped[str] = mapped_column(
         String(32), nullable=False, default="active", server_default="active"
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now() + interval '30 days'"),
     )
     version: Mapped[int] = mapped_column(
         Integer, nullable=False, default=1, server_default="1"

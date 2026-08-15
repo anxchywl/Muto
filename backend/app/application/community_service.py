@@ -67,6 +67,7 @@ async def favorite_page(
         .where(
             Favorite.user_id == principal.user_id,
             Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
+            Listing.expires_at > func.now(),
         )
         .order_by(desc(Listing.updated_at), desc(Listing.id))
     )
@@ -115,6 +116,8 @@ async def add_favorite(
         raise NotFoundError("listing_not_found", "The listing was not found.")
     if listing.status == ListingStatus.removed.value:
         raise GoneError()
+    if listing.expires_at <= datetime.now(UTC):
+        raise NotFoundError("listing_not_found", "The listing was not found.")
     if (
         listing.status == ListingStatus.hidden.value
         and listing.owner_id != principal.user_id
@@ -160,6 +163,7 @@ async def seller_profile(
         .where(
             Listing.owner_id == seller_id,
             Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
+            Listing.expires_at > func.now(),
         )
     )
     return SellerProfileResponse(

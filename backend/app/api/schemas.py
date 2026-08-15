@@ -86,6 +86,7 @@ class ListingResponse(BaseModel):
     seller_id: UUID
     seller_display_name: str
     created_at: datetime
+    expires_at: datetime
     updated_at: datetime
     price: MoneyResponse | None = None
     wanted_items: str | None = None

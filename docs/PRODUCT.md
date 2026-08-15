@@ -65,6 +65,10 @@ Rules:
   with a conflict rather than overwriting a newer one.
 - A photo reference is staged, owned by one account, and redeemed when the
   listing is saved. One that is never redeemed expires.
+- A published listing is active for 30 days from publication. After that it is
+  hidden from other students and remains visible to its owner as needing a
+  relist. Relisting renews the 30-day window without changing the original
+  posted date.
 - Editing is possible while a listing is active, reserved or hidden. A sold
   listing cannot be edited, only relisted or removed.
 

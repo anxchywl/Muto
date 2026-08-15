@@ -45,13 +45,13 @@ caching.
 | Flutter interface | Backend endpoint | Request | Response | Errors |
 |---|---|---|---|---|
 | `SessionRepository.resolve` | `GET /api/v1/me` | Bearer token | Identity | `401` invalid token, `403` suspended account |
-| `ListingRepository.browse` | `GET /api/v1/listings` | Filters, sort, limit and cursor | Listing page without contact | `401`, `409` cursor/filter mismatch, `422` invalid input or cursor |
+| `ListingRepository.browse` | `GET /api/v1/listings` | Filters, sort, limit and cursor | Listing page without contact, including `created_at` and `expires_at` | `401`, `409` cursor/filter mismatch, `422` invalid input or cursor |
 | `ListingRepository.suggestions` | `GET /api/v1/listings/suggestions` | Prefix | String list | `401`, `422` invalid prefix |
 | `ListingRepository.byId` | `GET /api/v1/listings/{listing_id}` | Listing id | Detail with conditional contact | `401`, `404` absent or hidden, `410` removed |
 | `ListingRepository.mine` | `GET /api/v1/me/listings` | Status, limit and cursor | Owner-visible listing page | `401`, `422` invalid input or cursor |
 | `ListingRepository.create` | `POST /api/v1/listings` | Draft and `Idempotency-Key` | Active listing | `401`, `403` unverified, `409` reused key, `422` invalid draft or key |
 | `ListingRepository.update` | `PATCH /api/v1/listings/{listing_id}` | Draft and `If-Match` | Updated listing | `401`, `403`, `404`, `409` stale or not editable, `410`, `422` |
-| `ListingRepository.changeStatus` | `PATCH /api/v1/listings/{listing_id}/status` | Status, `If-Match` and `Idempotency-Key` | Updated listing | `401`, `403`, `404`, `409` stale, invalid transition or reused key, `410`, `422` |
+| `ListingRepository.changeStatus` | `PATCH /api/v1/listings/{listing_id}/status` | Status, `If-Match` and `Idempotency-Key` | Updated listing; relisting renews `expires_at` | `401`, `403`, `404`, `409` stale, invalid transition or reused key, `410`, `422` |
 | `ListingRepository.remove` | `DELETE /api/v1/listings/{listing_id}` | `If-Match` and `Idempotency-Key` | Removed listing version | `401`, `403`, `404`, `409`, `410`, `422` |
 | `FavoritesRepository.page` | `GET /api/v1/favorites` | Limit and cursor | Visible favorite page without contact | `401`, `409` account/cursor mismatch, `422` invalid input or cursor |
 | `FavoritesRepository.savedIds` | `GET /api/v1/favorites/ids` | None | Saved listing ids | `401` |

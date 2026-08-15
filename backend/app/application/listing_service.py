@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -33,12 +32,17 @@ from app.domain.errors import (
 from app.domain.listings import (
     EDITABLE_STATUSES,
     PUBLIC_STATUSES,
+    ListingCategory,
+    ListingCondition,
+    ListingKind,
     ListingSort,
     ListingStatus,
     require_transition,
     validate_listing_values,
 )
 from app.infrastructure.db.models import IdempotencyKey, Listing, User
+
+LISTING_LIFETIME = timedelta(days=30)
 
 
 def serialize_listing(
@@ -67,16 +71,17 @@ def serialize_listing(
     return ListingResponse(
         id=listing.id,
         version=listing.version,
-        kind=listing.kind,
-        status=listing.status,
+        kind=ListingKind(listing.kind),
+        status=ListingStatus(listing.status),
         title=listing.title,
         description=listing.description,
-        condition=listing.condition,
-        category=listing.category,
+        condition=ListingCondition(listing.condition),
+        category=ListingCategory(listing.category),
         images=images or [],
         seller_id=listing.owner_id,
         seller_display_name=seller.display_name or "Student",
         created_at=listing.created_at,
+        expires_at=listing.expires_at,
         updated_at=listing.updated_at,
         price=price,
         wanted_items=listing.wanted_items,
@@ -121,6 +126,7 @@ def _apply_filters(
 ) -> Select[tuple[Listing, User]]:
     query = query.where(
         Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
+        Listing.expires_at > func.now(),
         User.account_status == "active",
     )
     if params.q:
@@ -168,11 +174,30 @@ async def browse_listings(
         if public_owner_id is not None:
             query = query.where(Listing.owner_id == public_owner_id)
     else:
+        now = datetime.now(UTC)
         query = query.where(
             Listing.owner_id == owner_id, Listing.status != ListingStatus.removed.value
         )
         if params.status:
-            query = query.where(Listing.status == params.status.value)
+            if params.status == ListingStatus.hidden:
+                query = query.where(
+                    or_(
+                        Listing.status == ListingStatus.hidden.value,
+                        and_(
+                            Listing.status.in_(
+                                [
+                                    ListingStatus.active.value,
+                                    ListingStatus.reserved.value,
+                                ]
+                            ),
+                            Listing.expires_at <= now,
+                        ),
+                    )
+                )
+            else:
+                query = query.where(Listing.status == params.status.value)
+                if params.status in {ListingStatus.active, ListingStatus.reserved}:
+                    query = query.where(Listing.expires_at > now)
         if params.category:
             query = query.where(Listing.category == params.category.value)
         if params.kind:
@@ -234,7 +259,11 @@ async def browse_listings(
             else last.price_minor_units
         )
         next_cursor = codec.encode({"f": fingerprint, "v": value, "id": str(last.id)})
-    listing_rows = [(listing, seller) for listing, seller in rows]
+    listing_rows = []
+    for listing, seller in rows:
+        if owner_id is not None and listing.expires_at <= datetime.now(UTC):
+            listing.status = ListingStatus.hidden.value
+        listing_rows.append((listing, seller))
     return await serialize_listing_rows(session, listing_rows), next_cursor
 
 
@@ -248,17 +277,19 @@ async def listing_suggestions(
     titles = (
         await session.scalars(
             select(Listing.title)
-            .where(Listing.status.in_([status.value for status in PUBLIC_STATUSES]))
+            .where(
+                Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
+                Listing.expires_at > func.now(),
+            )
             .order_by(desc(Listing.created_at))
             .limit(2_000)
         )
     ).all()
-    counts: dict[str, int] = {}
+    suggestions: list[str] = []
     for title in titles:
-        for word in re.findall(r"[^\W_]+", title.lower(), flags=re.UNICODE):
-            if len(word) >= 2 and word.startswith(normalized):
-                counts[word] = counts.get(word, 0) + 1
-    return sorted(counts, key=lambda word: (-counts[word], word))[:6]
+        if title.lower().startswith(normalized) and title not in suggestions:
+            suggestions.append(title)
+    return suggestions[:6]
 
 
 async def get_listing(
@@ -278,10 +309,15 @@ async def get_listing(
         raise NotFoundError("listing_not_found", "The listing was not found.")
     if listing.status == ListingStatus.removed.value:
         raise GoneError()
-    if (
-        listing.status == ListingStatus.hidden.value
-        and listing.owner_id != principal.user_id
-    ):
+    is_owner = listing.owner_id == principal.user_id
+    if listing.expires_at <= datetime.now(UTC) and listing.status in {
+        ListingStatus.active.value,
+        ListingStatus.reserved.value,
+    }:
+        if not is_owner:
+            raise NotFoundError("listing_not_found", "The listing was not found.")
+        listing.status = ListingStatus.hidden.value
+    if listing.status == ListingStatus.hidden.value and not is_owner:
         raise NotFoundError("listing_not_found", "The listing was not found.")
     references = await image_references_by_listing(session, [listing.id])
     return serialize_listing(
@@ -452,7 +488,15 @@ async def change_listing_status(
         await session.flush()
     current = await _owned_listing(session, principal, listing_id)
     _require_version(current, expected_version)
-    require_transition(ListingStatus(current.status), target)
+    expired_relist = (
+        target == ListingStatus.active
+        and current.status in {ListingStatus.active.value, ListingStatus.reserved.value}
+        and current.expires_at <= datetime.now(UTC)
+    )
+    if expired_relist:
+        require_transition(ListingStatus.hidden, target)
+    else:
+        require_transition(ListingStatus(current.status), target)
     result = await session.execute(
         update(Listing)
         .where(
@@ -463,6 +507,11 @@ async def change_listing_status(
         )
         .values(
             status=target.value,
+            expires_at=(
+                datetime.now(UTC) + LISTING_LIFETIME
+                if target == ListingStatus.active
+                else Listing.expires_at
+            ),
             version=Listing.version + 1,
             updated_at=datetime.now(UTC),
         )
