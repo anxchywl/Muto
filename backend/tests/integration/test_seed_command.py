@@ -33,8 +33,8 @@ async def test_synthetic_seed_is_idempotent_and_contains_no_contact_data() -> No
             )
         )
     await engine.dispose()
-    assert first == 3
+    assert first == 8
     assert second == 0
-    assert count == 3
+    assert count == 8
     assert identity is not None
     assert identity.provider_subject == "sample-seller"

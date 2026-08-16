@@ -59,7 +59,7 @@ class Listing(UuidPrimaryKeyMixin, TimestampMixin, Base):
             name="price_within_currency_limit",
         ),
         CheckConstraint(
-            "char_length(title) BETWEEN 3 AND 80",
+            "char_length(title) BETWEEN 1 AND 80",
             name="title_length_allowed",
         ),
         CheckConstraint(

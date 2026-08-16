@@ -152,7 +152,7 @@ class OperationalReportPage(BaseModel):
 
 class ListingDraftRequest(BaseModel):
     kind: ListingKind
-    title: Annotated[str, Field(min_length=3, max_length=80)]
+    title: Annotated[str, Field(min_length=1, max_length=80)]
     description: Annotated[str, Field(max_length=2000)] = ""
     condition: ListingCondition
     category: ListingCategory
@@ -168,7 +168,7 @@ class ListingDraftRequest(BaseModel):
     @classmethod
     def clean_title(cls, value: str) -> str:
         cleaned = normalize_line(value)
-        if len(cleaned) < 3:
+        if len(cleaned) < 1:
             raise ValueError("title is too short after normalization")
         return cleaned
 
