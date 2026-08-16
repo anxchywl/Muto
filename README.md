@@ -7,8 +7,10 @@ outside the app.
 The marketplace is an embeddable Flutter feature. This repository also contains
 a standalone host for development.
 
-> Remote mode is the default and uses the backend in this repository.
-> Production authentication, hosting, and signing credentials are not included.
+> Remote mode is the default. The current development deployment uses
+> `https://muto.anxchywl.dev` with temporary development authentication and
+> synthetic marketplace records. Production authentication and signing are not
+> included.
 
 ## Features
 
@@ -98,21 +100,21 @@ unavailable in release builds and neither token is an authorization claim by
 itself: the backend resolves the account and role.
 
 The same example file documents backend runtime settings. Local authentication
-accepts only the explicitly configured synthetic development token and the
-backend refuses to start with that adapter in production. The future host token
-format is not yet defined, so production authentication deliberately rejects
-every token.
+accepts only the explicitly configured synthetic development tokens. The live
+development deployment uses the same adapter temporarily; it must be replaced
+with the host authentication adapter before production use.
 
 ## Status and limitations
 
 - The standalone host uses the FastAPI service and PostgreSQL by default.
 - In-memory sample repositories remain only as test fixtures; they are not the
   host's normal data source.
-- Production authentication and host integration are not finished.
-- Production deployment needs a hostname, object storage, credentials, and
-  GitHub environment configuration.
-- Android artifacts are unsigned. A tagged release builds an APK and attaches
-  it to a GitHub Release; it is not an app-store release.
+- The live development backend currently contains synthetic listings and uses
+  temporary development authentication.
+- The current downloadable artifact is the prerelease
+  [v0.1.2-dev APK](https://github.com/anxchywl/Muto/releases/tag/v0.1.2-dev).
+- Production host authentication, real signing, and app-store distribution are
+  not finished.
 
 ## Documentation
 
