@@ -112,7 +112,7 @@ with the host authentication adapter before production use.
 - The live development backend currently contains synthetic listings and uses
   temporary development authentication.
 - The current downloadable artifact is the prerelease
-  [v0.1.4-dev APK](https://github.com/anxchywl/Muto/releases/tag/v0.1.4-dev).
+  [v0.1.5-dev APK](https://github.com/anxchywl/Muto/releases/tag/v0.1.5-dev).
 - Production host authentication, real signing, and app-store distribution are
   not finished.
 

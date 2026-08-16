@@ -66,15 +66,8 @@ class _Placeholder extends StatelessWidget {
     return Semantics(
       label: semanticLabel,
       image: true,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isLight ? palette : palette.reversed.toList(),
-            stops: const [0, 0.34, 0.67, 1],
-          ),
-        ),
+      child: CustomPaint(
+        painter: _StripePainter(isLight ? palette : palette.reversed.toList()),
         child: Center(
           child: AppIcon(
             AppIcons.image,
@@ -85,6 +78,34 @@ class _Placeholder extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _StripePainter extends CustomPainter {
+  const _StripePainter(this.palette);
+
+  final List<Color> palette;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bandWidth = size.shortestSide * 0.16;
+    final stripeGap = bandWidth * 1.5;
+    final paint = Paint();
+    for (var index = -8; index < 16; index++) {
+      paint.color = palette[index.abs() % palette.length];
+      final start = index * stripeGap;
+      final path = Path()
+        ..moveTo(start, 0)
+        ..lineTo(start + bandWidth, 0)
+        ..lineTo(start + size.height + bandWidth, size.height)
+        ..lineTo(start + size.height, size.height)
+        ..close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StripePainter oldDelegate) =>
+      oldDelegate.palette != palette;
 }
 
 const _placeholderPalettes = <List<Color>>[
