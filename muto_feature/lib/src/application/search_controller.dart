@@ -71,6 +71,13 @@ final class MutoSearchController extends ChangeNotifier {
       return;
     }
 
+    // keep the previous prefix from appearing while availability is checked
+    _attempt++;
+    if (_suggestions.isNotEmpty || _isSuggesting) {
+      _suggestions = const [];
+      _isSuggesting = false;
+      notifyListeners();
+    }
     _pending = Timer(debounce, () => unawaited(_suggest(term)));
   }
 

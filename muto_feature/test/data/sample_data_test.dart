@@ -57,19 +57,23 @@ void main() {
       );
     });
 
-    test('includes a listing whose image cannot resolve', () {
-      final broken = _shipped().listings.where(
-        (listing) =>
-            listing.images.any((image) => image.id == 'sample-missing'),
-      );
-      expect(broken, isNotEmpty, reason: 'the failure state needs a subject');
-    });
-
-    test('includes a listing with no images at all', () {
-      expect(
-        _shipped().listings.where((listing) => listing.images.isEmpty),
-        isNotEmpty,
-      );
+    test('gives every shipped listing a photo that actually resolves', () {
+      // the broken-image and no-image states are real and still have to be
+      // handled — ListingImage's own tests cover that directly — but nothing
+      // browsable should demonstrate them, so every sample listing carries a
+      // bundled id rather than an empty list or a dangling reference
+      for (final listing in _shipped().listings) {
+        expect(
+          listing.images,
+          isNotEmpty,
+          reason: '${listing.id} has no photo',
+        );
+        expect(
+          listing.images.every((image) => image.id != 'sample-missing'),
+          isTrue,
+          reason: '${listing.id} points at an image the bundle does not have',
+        );
+      }
     });
 
     test('every price obeys its currency bounds', () {

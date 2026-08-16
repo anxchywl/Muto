@@ -19,10 +19,14 @@ import 'package:muto_feature/src/domain/repositories/listing_repository.dart';
 
 late SampleData _data;
 
-MockListingRepository _repository({Identity? viewer, MockFaults? faults}) {
+MockListingRepository _repository({
+  Identity? viewer,
+  MockFaults? faults,
+  List<Listing>? seed,
+}) {
   final identity = viewer ?? _data.viewer;
   return MockListingRepository(
-    seed: _data.listings,
+    seed: seed ?? _data.listings,
     viewer: () => identity,
     latency: const MockLatency.none(),
     faults: faults,
@@ -58,6 +62,25 @@ void main() {
       for (final listing in page.items) {
         expect(listing.status.isVisibleInBrowse, isTrue, reason: listing.id);
       }
+    });
+
+    test('hides an expired listing from the public feed', () async {
+      final expired = _data.listings.first.copyWith(
+        expiresAt: DateTime(2026, 7, 1),
+      );
+      final page = await _repository(
+        seed: [expired, ..._data.listings.skip(1)],
+        viewer: const Identity(
+          userId: 'usr_999',
+          displayName: 'Someone',
+          isVerified: true,
+        ),
+      ).browse(query: const ListingQuery());
+
+      expect(
+        page.items.map((listing) => listing.id),
+        isNot(contains(expired.id)),
+      );
     });
 
     test('never exposes seller contact in a list', () async {
@@ -217,6 +240,11 @@ void main() {
       expect(created.status, ListingStatus.active);
       expect(created.sellerId, _data.viewer.userId);
       expect(created.version, const Version(1));
+      expect(created.expiresAt, isNotNull);
+      expect(
+        created.expiresAt!.difference(created.createdAt),
+        const Duration(days: 30),
+      );
     });
 
     test('a retry with the same token returns the same listing', () async {
@@ -308,6 +336,30 @@ void main() {
       expect(updated.status, ListingStatus.reserved);
       expect(updated.version, const Version(2));
     });
+
+    test(
+      'relisting an expired listing renews expiry and keeps posted date',
+      () async {
+        final original = _data.listings.firstWhere(
+          (listing) => listing.sellerId == _data.viewer.userId,
+        );
+        final expired = original.copyWith(expiresAt: DateTime(2026, 7, 1));
+        final repository = _repository(
+          seed: [expired, ..._data.listings.skip(1)],
+        );
+
+        final hidden = await repository.byId(original.id);
+        final relisted = await repository.changeStatus(
+          original.id,
+          ListingStatus.active,
+          expected: hidden.version,
+        );
+
+        expect(relisted.status, ListingStatus.active);
+        expect(relisted.createdAt, original.createdAt);
+        expect(relisted.expiresAt!.isAfter(DateTime.now()), isTrue);
+      },
+    );
 
     test('refuses to edit a sold listing', () async {
       expect(

@@ -53,6 +53,7 @@ final class MockListingRepository implements ListingRepository {
   }) async {
     await Future<void>.delayed(latency.read);
     faults.checkReadable();
+    _expireDue();
 
     final matches =
         _listings
@@ -68,6 +69,7 @@ final class MockListingRepository implements ListingRepository {
   Future<Listing> byId(String id) async {
     await Future<void>.delayed(latency.read);
     faults.checkReadable();
+    _expireDue();
 
     final listing = _find(id);
     if (listing == null) throw const NotFoundFailure();
@@ -87,33 +89,25 @@ final class MockListingRepository implements ListingRepository {
   Future<List<String>> suggestions(String prefix) async {
     await Future<void>.delayed(latency.read);
     faults.checkReadable();
+    _expireDue();
 
     final term = SearchRules.normalizeTerm(prefix)?.toLowerCase();
     if (term == null || !SearchRules.isSuggestible(term)) return const [];
 
-    // how often a word is used decides the order, so the terms on offer are
-    // the ones that actually lead somewhere
-    final counts = <String, int>{};
+    final titles = <String>[];
     for (final listing in _listings) {
       if (!listing.status.isVisibleInBrowse) continue;
-      for (final word in _words(listing.title)) {
-        if (!word.startsWith(term)) continue;
-        counts[word] = (counts[word] ?? 0) + 1;
-      }
+      if (!listing.title.toLowerCase().startsWith(term)) continue;
+      if (!titles.contains(listing.title)) titles.add(listing.title);
     }
-
-    final ordered = counts.keys.toList()
-      ..sort((a, b) {
-        final byCount = counts[b]!.compareTo(counts[a]!);
-        return byCount != 0 ? byCount : a.compareTo(b);
-      });
-    return ordered.take(SearchRules.suggestionMax).toList();
+    return titles.take(SearchRules.suggestionMax).toList();
   }
 
   @override
   Future<Page<Listing>> mine({ListingStatus? status, Cursor? cursor}) async {
     await Future<void>.delayed(latency.read);
     faults.checkReadable();
+    _expireDue();
 
     final viewer = _viewer();
     final matches =
@@ -167,6 +161,7 @@ final class MockListingRepository implements ListingRepository {
       sellerDisplayName: viewer.displayName,
       createdAt: now,
       updatedAt: now,
+      expiresAt: now.add(const Duration(days: 30)),
       price: normalized.price,
       wantedItems: normalized.wantedItems,
     );
@@ -213,6 +208,7 @@ final class MockListingRepository implements ListingRepository {
       sellerDisplayName: current.sellerDisplayName,
       createdAt: current.createdAt,
       updatedAt: DateTime.now(),
+      expiresAt: current.expiresAt,
       price: normalized.price,
       wantedItems: normalized.wantedItems,
       contact: current.contact,
@@ -239,6 +235,9 @@ final class MockListingRepository implements ListingRepository {
     final updated = current.copyWith(
       status: next,
       version: Version(current.version.value + 1),
+      expiresAt: next == ListingStatus.active
+          ? DateTime.now().add(const Duration(days: 30))
+          : current.expiresAt,
     );
     _replace(updated);
     return updated;
@@ -288,6 +287,20 @@ final class MockListingRepository implements ListingRepository {
     if (index >= 0) _listings[index] = listing;
   }
 
+  void _expireDue() {
+    final now = DateTime.now();
+    for (var index = 0; index < _listings.length; index++) {
+      final listing = _listings[index];
+      if (!listing.isExpiredAt(now) || !listing.status.isVisibleInBrowse) {
+        continue;
+      }
+      _listings[index] = listing.copyWith(
+        status: ListingStatus.hidden,
+        version: Version(listing.version.value + 1),
+      );
+    }
+  }
+
   static Listing _withoutContact(Listing listing) {
     if (listing.contact == null) return listing;
     return Listing(
@@ -304,6 +317,7 @@ final class MockListingRepository implements ListingRepository {
       sellerDisplayName: listing.sellerDisplayName,
       createdAt: listing.createdAt,
       updatedAt: listing.updatedAt,
+      expiresAt: listing.expiresAt,
       price: listing.price,
       wantedItems: listing.wantedItems,
     );
@@ -369,15 +383,6 @@ final class MockListingRepository implements ListingRepository {
       nextCursor: end < all.length ? Cursor('offset:$end') : null,
     );
   }
-
-  /// Splits on anything that is not a letter or a digit, so a title with a
-  /// comma or a hyphen still yields the words a reader would type.
-  static final RegExp _separators = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
-
-  static Iterable<String> _words(String title) => title
-      .toLowerCase()
-      .split(_separators)
-      .where((word) => word.length >= SearchRules.suggestMinLength);
 
   static int _offsetOf(Cursor? cursor) {
     if (cursor == null) return 0;

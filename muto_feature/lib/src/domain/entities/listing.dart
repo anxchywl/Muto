@@ -27,6 +27,7 @@ final class Listing {
     required this.sellerDisplayName,
     required this.createdAt,
     required this.updatedAt,
+    this.expiresAt,
     this.price,
     this.wantedItems,
     this.contact,
@@ -45,6 +46,10 @@ final class Listing {
   final String sellerDisplayName;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? expiresAt;
+
+  bool isExpiredAt(DateTime moment) =>
+      expiresAt != null && !moment.isBefore(expiresAt!);
 
   /// Present only when [kind] is a sale.
   final Money? price;
@@ -62,6 +67,7 @@ final class Listing {
     ListingStatus? status,
     Version? version,
     SellerContact? contact,
+    DateTime? expiresAt,
   }) {
     return Listing(
       id: id,
@@ -77,6 +83,7 @@ final class Listing {
       sellerDisplayName: sellerDisplayName,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      expiresAt: expiresAt ?? this.expiresAt,
       price: price,
       wantedItems: wantedItems,
       contact: contact ?? this.contact,

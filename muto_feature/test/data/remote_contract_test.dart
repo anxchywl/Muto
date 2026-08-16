@@ -63,7 +63,7 @@ void main() {
           if (request.url.path == '/api/v1/me') return _identityResponse();
           if (request.url.path == '/api/v1/listings/suggestions') {
             return _json({
-              'data': ['desk', 'desk lamp'],
+              'data': ['Desk lamp', 'Desk organizer'],
               'meta': {},
             });
           }
@@ -103,7 +103,10 @@ void main() {
         expect(browse.url.queryParameters['sort'], 'price_ascending');
         expect(browse.headers['Authorization'], 'Bearer token-a');
 
-        expect(await repository.suggestions('de'), ['desk', 'desk lamp']);
+        expect(await repository.suggestions('de'), [
+          'Desk lamp',
+          'Desk organizer',
+        ]);
         await repository.create(
           _draft,
           requestId: const ClientRequestId('request-key-123456'),

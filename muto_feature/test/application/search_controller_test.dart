@@ -146,6 +146,19 @@ void main() {
   });
 
   test(
+    'changing the prefix clears suggestions from the previous prefix',
+    () async {
+      await controller.start('usr_001');
+      controller.textChanged('lamp');
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(controller.suggestions, isNotEmpty);
+
+      controller.textChanged('desk');
+      expect(controller.suggestions, isEmpty);
+    },
+  );
+
+  test(
     'a failed suggestion empties the list and leaves the typing alone',
     () async {
       controller.dispose();

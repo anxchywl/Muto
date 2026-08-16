@@ -62,12 +62,20 @@ Listing listingFromWire(Map<String, Object?> value) {
     sellerDisplayName: _string(value, 'seller_display_name'),
     createdAt: _date(value, 'created_at'),
     updatedAt: _date(value, 'updated_at'),
+    expiresAt:
+        _optionalDate(value, 'expires_at') ??
+        _date(value, 'created_at').add(const Duration(days: 30)),
     price: priceValue == null ? null : moneyFromWire(_object(priceValue)),
     wantedItems: _nullableString(value, 'wanted_items'),
     contact: contactValue == null
         ? null
         : sellerContactFromWire(_object(contactValue)),
   );
+}
+
+DateTime? _optionalDate(Map<String, Object?> value, String key) {
+  final raw = value[key];
+  return raw is String ? DateTime.tryParse(raw) : null;
 }
 
 Money moneyFromWire(Map<String, Object?> value) {

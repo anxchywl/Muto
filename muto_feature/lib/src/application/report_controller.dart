@@ -56,7 +56,11 @@ final class ReportController extends ChangeNotifier {
 
   bool get isSending => _status == ReportStatus.sending;
 
-  bool get canSubmit => _reason != null && !isSending;
+  bool get canSubmit {
+    final reason = _reason;
+    if (reason == null || isSending) return false;
+    return ReportRules.validate(reason, _note) == null;
+  }
 
   void select(ReportReason reason) {
     if (_reason == reason) return;
@@ -68,7 +72,7 @@ final class ReportController extends ChangeNotifier {
 
   void noteChanged(String value) {
     _note = value;
-    if (_showIssue) notifyListeners();
+    notifyListeners();
   }
 
   /// True once the report has landed. False means the sheet stays open with
