@@ -66,13 +66,17 @@ class _Placeholder extends StatelessWidget {
     return Semantics(
       label: semanticLabel,
       image: true,
-      child: CustomPaint(
-        painter: _StripePainter(isLight ? palette : palette.reversed.toList()),
-        child: Center(
-          child: AppIcon(
-            AppIcons.image,
-            size: 28,
-            color: isLight ? AppColors.white : AppColors.iconSecondary,
+      child: ClipRect(
+        child: CustomPaint(
+          painter: _StripePainter(
+            isLight ? palette : palette.reversed.toList(),
+          ),
+          child: Center(
+            child: AppIcon(
+              AppIcons.image,
+              size: 28,
+              color: isLight ? AppColors.white : AppColors.iconSecondary,
+            ),
           ),
         ),
       ),
