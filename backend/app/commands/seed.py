@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from uuid import NAMESPACE_URL, uuid5
 
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +20,13 @@ LISTING_IDS = [
 
 
 async def seed_synthetic_data(session: AsyncSession) -> int:
+    existing_default_user_id = await session.scalar(
+        select(UserIdentity.user_id).where(
+            UserIdentity.provider_issuer == "muto-development",
+            UserIdentity.provider_subject == "student-a",
+        )
+    )
+    default_user_id = existing_default_user_id or DEFAULT_USER_ID
     await session.execute(
         insert(User)
         .values(
@@ -30,7 +38,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
                     "account_status": "active",
                 },
                 {
-                    "id": DEFAULT_USER_ID,
+                    "id": default_user_id,
                     "display_name": "Aruzhan",
                     "is_verified": True,
                     "account_status": "active",
@@ -51,7 +59,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
     await session.execute(
         insert(UserIdentity)
         .values(
-            user_id=DEFAULT_USER_ID,
+            user_id=default_user_id,
             provider_issuer="muto-development",
             provider_subject="student-a",
         )
@@ -96,7 +104,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         },
         {
             "id": uuid5(NAMESPACE_URL, "https://muto.local/synthetic/listing/calculus"),
-            "owner_id": DEFAULT_USER_ID,
+            "owner_id": default_user_id,
             "title": "Calculus workbook",
             "description": (
                 "Used for MATH 161. No missing pages, with a few pencil notes."
@@ -110,7 +118,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         },
         {
             "id": uuid5(NAMESPACE_URL, "https://muto.local/synthetic/listing/lamp"),
-            "owner_id": DEFAULT_USER_ID,
+            "owner_id": default_user_id,
             "title": "Настольная лампа с регулировкой яркости",
             "description": "Почти новая, работает от USB.",
             "category": "dorm",
@@ -122,7 +130,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         },
         {
             "id": uuid5(NAMESPACE_URL, "https://muto.local/synthetic/listing/bicycle"),
-            "owner_id": DEFAULT_USER_ID,
+            "owner_id": default_user_id,
             "title": "Велосипед горный, 26 дюймов",
             "description": "Тормоза недавно менял, зимой не использовался.",
             "category": "sports",
@@ -134,7 +142,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         },
         {
             "id": uuid5(NAMESPACE_URL, "https://muto.local/synthetic/listing/guitar"),
-            "owner_id": DEFAULT_USER_ID,
+            "owner_id": default_user_id,
             "title": "Акустическая гитара, меняю",
             "description": "Строит нормально, чехол в комплекте.",
             "category": "other",
@@ -146,7 +154,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         },
         {
             "id": uuid5(NAMESPACE_URL, "https://muto.local/synthetic/listing/chair"),
-            "owner_id": DEFAULT_USER_ID,
+            "owner_id": default_user_id,
             "title": "Free desk chair, pick up from Block 22",
             "description": "The armrest is scuffed but it rolls fine.",
             "category": "furniture",
