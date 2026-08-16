@@ -38,7 +38,7 @@ Kazakh or Russian, and follows the system theme.
 The backend runs separately:
 
 ```bash
-docker compose up --build
+docker compose -f docker/docker-compose.yml up --build
 curl http://127.0.0.1:8000/health/live
 curl http://127.0.0.1:8000/health/ready
 ```
@@ -51,7 +51,7 @@ exposed.
 Populate three idempotent synthetic listings after the service is ready:
 
 ```bash
-docker compose exec backend .venv/bin/python -m app.commands.seed
+docker compose -f docker/docker-compose.yml exec backend .venv/bin/python -m app.commands.seed
 ```
 
 The command is blocked in production and contains no contact details,
@@ -128,9 +128,9 @@ flutter build apk --debug
 flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
 ```
 
-The release build is a check rather than a deliverable. It is unsigned, it is
-not distributed, and its point is to prove the app compiles in release and that
-the standalone host refuses to open without development access.
+The local release build is unsigned and is only a compilation check. A tagged
+release uses the separate release workflow to attach the APK to a GitHub
+Release; it is not an app-store release.
 
 ## Working on the feature
 
@@ -218,9 +218,10 @@ Validation jobs need no secret, which keeps pull requests from forks safe. The
 `deploy` job runs only for a tested default-branch push, uses the protected `temporary`
 environment, and skips when its three SSH secrets are absent.
 
-The repository has an `origin` remote, but no workflow run was inspected during
-this local backend work. Treat CI as unverified until these jobs run green on
-GitHub.
+The CI workflow is the repository's required quality gate. Release builds are
+separate: pushing a tag matching `v*.*.*` runs
+[`../.github/workflows/release.yml`](../.github/workflows/release.yml) and
+publishes an unsigned APK to a GitHub Release.
 
 ## Deployment
 
@@ -284,7 +285,7 @@ role isolation, private upload, redemption, controlled download and cleanup
 journey on Android and iOS. It requires `MUTO_STAGING_API_URL`,
 `MUTO_STAGING_USER_TOKEN` and `MUTO_STAGING_ADMIN_TOKEN` repository secrets.
 
-Still deferred: Jas Wallet token validation, real signing and host distribution,
+Still deferred: host token validation, real signing and host distribution,
 a final privacy review, a remotely observed green workflow, staging restore
 evidence, and live-device poor-network testing. The repository contains the
 procedures; it does not claim those external checks have happened.

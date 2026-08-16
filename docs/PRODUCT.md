@@ -14,9 +14,8 @@ Canonical product behaviour and rules. How it is built is in
   a placeholder session so the feature can be run without a host, and a release
   build of it refuses to open at all.
 
-The feature is not integrated with Jas Wallet. Standalone development access is
-the current state, and the host contract exists but has never been exercised
-against a real host.
+Standalone development access is the current state, and the host contract has
+never been exercised against a real host.
 
 ## Identity and roles
 

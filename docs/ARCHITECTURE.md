@@ -52,8 +52,7 @@ controller and an implementation.
 
 ## Mounting inside a host
 
-The feature is built to be mounted inside another application — Jas Wallet is
-the intended one.
+The feature is built to be mounted inside another application.
 
 ```dart
 MutoFeature(
@@ -314,11 +313,12 @@ scanned by advisory in CI.
 | Account switching and expired tokens | Scope recreation, generation checks, stale-`401` suppression and per-session private image cache keys | The future host owns token refresh and replacement |
 | Malformed cursors | Signed opaque cursors are schema-checked and bound to account, filters and ordering | Cursor-secret rotation needs a deployment policy |
 | Report rate-limit bypass | Stable internal-account scope and serialized PostgreSQL checks | No general-purpose distributed limiter is added without demonstrated need |
-| Forged operator state | Operator access comes from the token resolver and every operations endpoint rechecks it | Final host role mapping awaits Jas Wallet auth design |
+| Forged operator state | Operator access comes from the token resolver and every operations endpoint rechecks it | Final host role mapping depends on the host authentication contract |
 | Log or response leakage | API access logs are off, proxy logs omit request headers, errors are structured, and responses omit stack traces, SQL, tokens and private paths | Alert delivery needs an external webhook |
 
-To report a vulnerability, open a private security advisory through the
-repository's Security tab rather than a public issue.
+To report a vulnerability, use a private GitHub security advisory when it is
+available, or contact the repository owner privately. Do not include secrets or
+real student data in a report.
 
 ## Testing strategy
 

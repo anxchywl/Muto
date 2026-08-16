@@ -1,20 +1,16 @@
 # Muto
 
-Muto is a marketplace for verified Nazarbayev University students. Someone
-lists a thing they no longer need; someone else finds it and gets in touch. The
-exchange itself happens between the two people, off the app.
+Muto is a small marketplace for verified Nazarbayev University students. People
+list things they no longer need, and interested students contact the owner
+outside the app.
 
-It is built as an **embeddable Flutter feature**, developed against a
-standalone host in this repository and intended to be mounted inside the Jas
-Wallet application later.
+The marketplace is an embeddable Flutter feature. This repository also contains
+a standalone host for development.
 
-> **Sample mode remains the default.** The Flutter feature also has an explicit
-> remote mode backed by the service in this repository. Production host
-> authentication is still deliberately unconfigured. Private S3-compatible
-> image storage and deployment automation are implemented, but need external
-> credentials and a hostname before they can be exercised.
+> Sample mode is the default. Remote mode uses the backend in this repository.
+> Production authentication, hosting, and signing credentials are not included.
 
-## What a student can do
+## Features
 
 - Browse listings, search them with suggestions and recent searches, and narrow
   them by category, type, condition and order
@@ -26,13 +22,12 @@ Wallet application later.
 - Manage their own listings: edit, reserve, mark sold, hide, relist, remove
 - Report someone else's listing
 
-Deliberately absent, as decisions rather than gaps: payments, checkout,
-delivery, cart, ratings, reviews, advertising, promoted listings, in-app
-messaging, and any moderation verdict or appeal. Operators have a private,
-read-only report intake; it does not decide outcomes. The rules behind all of
-it are in [docs/PRODUCT.md](docs/PRODUCT.md).
+Payments, checkout, delivery, ratings, reviews, advertising, promoted listings,
+and in-app messaging are not part of the project. Reports have a private,
+read-only operator intake; the app does not make moderation decisions. See
+[docs/PRODUCT.md](docs/PRODUCT.md) for the complete product rules.
 
-## System map
+## Project structure
 
 ```text
 muto_app  →  muto_feature  →  muto_ui  →  app_ui
@@ -46,15 +41,14 @@ muto_app  →  muto_feature  →  muto_ui  →  app_ui
 | `muto_feature` | The feature itself: domain, application, data, presentation |
 | `muto_app` | Standalone development host: `MaterialApp`, theme, locale, lifecycle |
 
-Inside `muto_feature` the layers are `domain / application / data /
-presentation`, and a test fails the build if one imports another it should not.
-The reasoning, the host contract and the security boundaries are in
+Inside `muto_feature`, the layers are `domain`, `application`, `data`, and
+`presentation`. The dependency rules are enforced by tests. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Local development
+## Development
 
-Requires Flutter 3.38.5 / Dart 3.10.4, Python 3.12, `uv`, Docker, and Android
-or iOS tooling. No Flutter web or desktop target is supported.
+You need Flutter 3.38.5 (Dart 3.10.4), Python 3.12, `uv`, Docker, and Android
+or iOS tooling. Web and desktop are not supported.
 
 ```bash
 cp .env.example .env
@@ -68,7 +62,7 @@ cd muto_app && flutter run --dart-define-from-file=../.env
 To run the backend and PostgreSQL:
 
 ```bash
-docker compose up --build
+docker compose -f docker/docker-compose.yml up --build
 curl http://127.0.0.1:8000/health/ready
 ```
 
@@ -77,12 +71,11 @@ To run the standalone Flutter host against that service, change
 example, and run the same `flutter run` command. Remote mode never falls back
 to sample data if configuration or a request fails.
 
-The verification script is the local quality gate for backend and Flutter:
+Run the complete local quality gate with `./scripts/verify.sh`. It covers
 formatting, linting, type analysis, security checks, tests, and coverage.
-Toolchain, migrations, builds and CI are in
-[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
+More detail is in [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
 
-## Environment variables
+## Configuration
 
 Flutter uses five compile-time values:
 
@@ -94,9 +87,8 @@ Flutter uses five compile-time values:
 | `MUTO_ACCESS_TOKEN` | synthetic local token | Development student token, passed unchanged to the session repository |
 | `MUTO_ADMIN_ACCESS_TOKEN` | synthetic local token | Distinct development operator token |
 
-It cannot switch anything on in a release build: the gate is
-`kDebugMode && ENABLE_DEV_ACCESS`, the host refuses to open without it, and a
-test asserts that. See [.env.example](.env.example).
+The standalone host refuses to open in release mode unless it is integrated
+with a real host. See [.env.example](.env.example).
 
 In a debug build, five taps on the Browse tab switch to the server-resolved
 operator account and five more switch back. The switch recreates the feature
@@ -110,30 +102,23 @@ backend refuses to start with that adapter in production. The future host token
 format is not yet defined, so production authentication deliberately rejects
 every token.
 
-## Limits worth knowing
+## Status and limitations
 
-- **Two Flutter modes.** Sample mode simulates the complete product in memory.
-  Remote mode maps the same repository interfaces to the versioned API with
-  timeouts, structured failure mapping, idempotency and expected versions.
-- **Backend scope.** Identity, listings, favorites, seller profiles, reports,
-  operator report intake and staged images are implemented. Development uses
-  private local storage; deployment uses a private S3-compatible bucket and
-  controlled authenticated delivery through the API.
-- **Security.** The backend enforces identity and marketplace rules. The
-  Flutter client derives no identity fields, does not retry automatically, and
-  isolates session state and authenticated image caches across account changes.
-  Boundaries and how to report a vulnerability are in
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#security-boundaries).
-- **Deployment.** Production Compose, TLS routing, preflight checks, verified
-  backups, retention cleanup, readiness monitoring, application rollback and a
-  main-branch deployment job are present. They remain unverified remotely until
-  the server, DNS, object storage and GitHub environment secrets are supplied.
-  Flutter artifacts are still unsigned and undistributed.
-- **Jas Wallet.** Not integrated. Its token contract is still unresolved, and
-  the host contract has never been exercised against a real host.
+- Sample mode runs entirely in memory; remote mode uses the FastAPI service and
+  PostgreSQL.
+- Production authentication and host integration are not finished.
+- Production deployment needs a hostname, object storage, credentials, and
+  GitHub environment configuration.
+- Android artifacts are unsigned. A tagged release builds an APK and attaches
+  it to a GitHub Release; it is not an app-store release.
 
-## Licence
+## Documentation
 
-There is no licence file, so default copyright applies: all rights reserved.
-The source is readable; nobody is granted the right to use, copy or
-redistribute it.
+- [Product rules](docs/PRODUCT.md)
+- [Architecture and security boundaries](docs/ARCHITECTURE.md)
+- [API contract](docs/API.md)
+- [Infrastructure and deployment](docs/INFRASTRUCTURE.md)
+
+## License
+
+Muto is licensed under the [MIT License](LICENSE).

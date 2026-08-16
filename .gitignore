@@ -1,4 +1,4 @@
-# Dart and Flutter
+# ── dart and flutter ─────────────────────────────────────────────────
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -7,18 +7,22 @@ build/
 *.dill
 doc/api/
 
-# library packages resolve from the application lockfile
+# package lockfiles are generated from the application lockfile
 muto_ui/pubspec.lock
 muto_feature/pubspec.lock
 app_ui/pubspec.lock
 
-# generated localizations, produced from the arb files
+# ── generated files and test output ──────────────────────────────────
 muto_feature/lib/src/l10n/generated/
-
-# test and coverage output
 coverage/
 *.lcov
 .coverage
+
+# ── python ───────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -26,13 +30,7 @@ htmlcov/
 test/failures/
 **/failures/
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-*.egg-info/
-
-# Android
+# ── android ──────────────────────────────────────────────────────────
 **/android/local.properties
 **/android/.gradle/
 **/android/captures/
@@ -42,7 +40,7 @@ __pycache__/
 *.aab
 *.ap_
 
-# iOS and macOS
+# ── ios and macos ────────────────────────────────────────────────────
 **/ios/Flutter/Generated.xcconfig
 **/ios/Flutter/flutter_export_environment.sh
 **/ios/Flutter/ephemeral/
@@ -55,17 +53,7 @@ __pycache__/
 *.ipa
 *.dSYM.zip
 
-# editors and IDEs
-.idea/
-.vscode/
-*.iml
-*.ipr
-*.iws
-.fleet/
-*.swp
-*~
-
-# environment and signing material
+# ── environments and signing material ───────────────────────────────
 .env
 .env.*
 !.env.example
@@ -78,20 +66,27 @@ key.properties
 google-services.json
 GoogleService-Info.plist
 
-# local tooling and scratch output
+# ── local tools and scratch data ─────────────────────────────────────
 .tool-versions
 .fvm/
 .envrc
 .direnv/
-*.log
+.local/
+.docker/
 tmp/
 scratch/
-.local/
+*.log
 
-# containers, if a service is ever added here
-.docker/
-docker-compose.override.yml
+# ── editors ──────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.fleet/
+*.swp
+*~
 
-# operating system
+# ── operating systems ───────────────────────────────────────────────
 .DS_Store
 Thumbs.db

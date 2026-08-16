@@ -6,8 +6,7 @@ document owns endpoint and wire-shape decisions.
 
 ## Current implementation
 
-Phases 1 through 6 implement and harden the service and Flutter remote adapters
-for:
+The service and Flutter remote adapters currently implement:
 
 | Endpoint | Authentication | Purpose |
 |---|---|---|
