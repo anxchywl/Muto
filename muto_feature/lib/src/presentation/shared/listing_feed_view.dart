@@ -177,7 +177,7 @@ class _ListingFeedViewState extends State<ListingFeedView> {
     // the last row has to clear the compose button where there is one, or the
     // bottom of the feed is unreachable
     final bottomInset = widget.reservesComposeButton
-        ? AppSpacing.xxxl + AppSpacing.xl
+        ? AppSpacing.xxxl + AppSpacing.xxl
         : AppSpacing.df;
 
     return RefreshIndicator(

@@ -36,6 +36,9 @@ final class SheetFocusMode extends ChangeNotifier {
   void setKeyboardVisible(bool value) {
     if (value == _keyboardVisible) return;
     _keyboardVisible = value;
+    if (!value && _typingIn != null) {
+      _typingIn = null;
+    }
   }
 
   /// True for everything that should fold while [id] is not the field in hand.
@@ -59,7 +62,7 @@ final class SheetFocusMode extends ChangeNotifier {
     final Object? next;
     if (node.hasFocus) {
       next = id;
-    } else if (_typingIn == id) {
+    } else if (_typingIn == id && !_keyboardVisible) {
       // a tap straight from one field to another lands the gain before the
       // loss, so only clear when the field losing focus is still the one on
       // record — otherwise focus mode would blink off and back on between them

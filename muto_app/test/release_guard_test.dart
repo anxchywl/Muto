@@ -48,10 +48,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      const HostApp(
-        allowDevelopmentAccess: true,
-        backend: MutoBackend.sample,
-      ),
+      const HostApp(allowDevelopmentAccess: true, backend: MutoBackend.sample),
     );
     await tester.pumpAndSettle();
 
