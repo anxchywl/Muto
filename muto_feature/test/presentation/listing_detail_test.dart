@@ -10,7 +10,6 @@ import 'package:muto_feature/src/data/mock/sample_data.dart';
 import 'package:muto_feature/src/data/mock/sample_dependencies.dart';
 import 'package:muto_feature/src/domain/entities/identity.dart';
 import 'package:muto_feature/src/domain/entities/listing_status.dart';
-import 'package:muto_ui/muto_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 late SampleData _data;
@@ -66,15 +65,17 @@ void main() {
   testWidgets('opens a listing from the feed', (tester) async {
     await _openListing(tester, 'Small study lamp, clip-on');
 
-    expect(find.text('Listing'), findsOneWidget);
+    expect(find.text('Small study lamp, clip-on'), findsWidgets);
     expect(find.text('Description'), findsOneWidget);
     expect(find.text('Seller'), findsOneWidget);
     expect(find.text('Madina'), findsOneWidget);
+    expect(find.text('29.07.2026'), findsOneWidget);
   });
 
   testWidgets('offers contact to a verified student', (tester) async {
     await _openListing(tester, 'Small study lamp, clip-on');
-    expect(find.text('Contact seller'), findsOneWidget);
+    // the contact bar pinned at the foot of the screen, one button per channel
+    expect(find.text('Telegram'), findsOneWidget);
   });
 
   testWidgets('withholds contact from an unverified student', (tester) async {
@@ -90,26 +91,63 @@ void main() {
       ),
     );
 
-    expect(find.text('Contact seller'), findsNothing);
+    expect(find.text('Telegram'), findsNothing);
     expect(
       find.text('Verify your student account to see contact details.'),
       findsOneWidget,
     );
   });
 
-  testWidgets('shows the seller contact right on the page', (tester) async {
+  testWidgets('says which handle the contact button copies', (tester) async {
+    final handle = tester.ensureSemantics();
     await _openListing(tester, 'Small study lamp, clip-on');
 
-    expect(find.text('@sample_madina'), findsOneWidget);
-    expect(find.text('Telegram'), findsOneWidget);
+    // the button shows only the channel, so the handle it puts on the
+    // clipboard has to reach a screen reader some other way
+    expect(
+      find.bySemanticsLabel('Copy Telegram @sample_madina'),
+      findsOneWidget,
+    );
+    handle.dispose();
   });
 
-  testWidgets('copies a contact channel when its row is tapped', (
+  testWidgets('opens the chat as well as copying the handle', (tester) async {
+    await _openListing(tester, 'Small study lamp, clip-on');
+
+    final launched = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/url_launcher'),
+      (call) async {
+        if (call.method == 'launch' || call.method == 'launchUrl') {
+          launched.add((call.arguments as Map)['url'] as String);
+        }
+        // 'canLaunch' and the rest answer yes so the plugin gets as far as
+        // trying, which is the part under test
+        return true;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/url_launcher'),
+        null,
+      ),
+    );
+
+    await tester.tap(find.text('Telegram'));
+    await tester.pumpAndSettle();
+
+    expect(launched, ['https://t.me/sample_madina']);
+    // and the handle is on the clipboard either way
+    expect(find.text('Copied'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('copies a contact channel when its button is tapped', (
     tester,
   ) async {
     await _openListing(tester, 'Small study lamp, clip-on');
-
-    await tester.ensureVisible(find.text('@sample_madina'));
 
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
@@ -128,16 +166,54 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('@sample_madina'));
+    await tester.tap(find.text('Telegram'));
     await tester.pumpAndSettle();
 
     expect(copied, '@sample_madina');
+    // the button says so itself rather than raising a toast over the listing
     expect(find.text('Copied'), findsOneWidget);
 
-    // a toast holds a timer of its own, which the test has to let expire
-    await tester.pumpAndSettle();
+    // the button holds a timer to change back, which the test has to let expire
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
+    expect(find.text('Telegram'), findsOneWidget);
+  });
+
+  testWidgets('a second channel copies from its own compact button', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _openListing(tester, 'One spare ticket, student orchestra concert');
+
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    // only the first channel carries a label; the rest are squares beside it
+    expect(find.text('Email'), findsNothing);
+    await tester.tap(
+      find.bySemanticsLabel('Copy Email sample.seller.02@example.edu'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(copied, 'sample.seller.02@example.edu');
+
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    handle.dispose();
   });
 
   testWidgets('an exchange says what the seller is looking for', (
@@ -150,7 +226,7 @@ void main() {
     expect(find.text('Open to swaps'), findsWidgets);
   });
 
-  testWidgets('a reserved listing says so plainly', (tester) async {
+  testWidgets('a reserved listing is visibly inactive', (tester) async {
     final reserved = _data.listings.firstWhere(
       (listing) => listing.status == ListingStatus.reserved,
     );
@@ -161,10 +237,8 @@ void main() {
       data: SampleData(viewer: _data.viewer, listings: [reserved]),
     );
 
-    expect(
-      find.text('This item is reserved for someone else.'),
-      findsOneWidget,
-    );
+    expect(find.text('This item is reserved for someone else.'), findsNothing);
+    expect(find.text(reserved.title), findsOneWidget);
   });
 
   testWidgets('translates the detail screen', (tester) async {
@@ -174,19 +248,10 @@ void main() {
       locale: const Locale('ru'),
     );
 
-    expect(find.text('Объявление'), findsOneWidget);
     expect(find.text('Описание'), findsOneWidget);
     expect(find.text('Продавец'), findsOneWidget);
-    expect(find.text('Связаться с продавцом'), findsOneWidget);
-  });
-
-  testWidgets('an image that cannot resolve still renders the screen', (
-    tester,
-  ) async {
-    // this listing points at an image id the bundle does not contain
-    await _openListing(tester, 'Small study lamp, clip-on');
-
-    expect(find.byType(ListingImage), findsWidgets);
-    expect(find.text('Small study lamp, clip-on'), findsWidgets);
+    // the controls floating over the photo carry no visible words, so their
+    // tooltips are the only place their translation shows
+    expect(find.byTooltip('Пожаловаться на объявление'), findsOneWidget);
   });
 }

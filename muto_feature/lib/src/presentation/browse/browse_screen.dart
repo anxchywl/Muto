@@ -11,6 +11,7 @@ import '../../domain/validation/text_rules.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
 import '../search/search_panel.dart';
+import '../shared/feed_layout.dart';
 import '../shared/listing_feed_view.dart';
 import 'browse_controls.dart';
 
@@ -28,23 +29,20 @@ class _BrowseScreenState extends State<BrowseScreen> {
   final FocusNode _searchFocus = FocusNode();
 
   ListingQuery _query = const ListingQuery();
-  Timer? _debounce;
+
+  /// Rows or tiles. Kept here rather than in the query, because it changes
+  /// nothing about which listings are asked for — only how they are drawn.
+  FeedLayout _layout = FeedLayout.rows;
 
   /// The strip is the search field's other half: opening search replaces it,
   /// and closing brings it back.
   bool _searching = false;
-
-  /// Recents and suggestions belong to the moment of typing, not to the search
-  /// itself, so they follow the caret rather than the field being open.
-  bool _typing = false;
 
   @override
   void initState() {
     super.initState();
     // the panel and the clear control both depend on whether anything has been
     // typed, which the field alone does not tell this screen
-    _search.addListener(_onTextChanged);
-    _searchFocus.addListener(_onFocusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _apply();
@@ -56,13 +54,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _searchFocus
-      ..removeListener(_onFocusChanged)
-      ..dispose();
-    _search
-      ..removeListener(_onTextChanged)
-      ..dispose();
+    _searchFocus.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -77,14 +70,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
           scope.dependencies.listings.browse(query: query, cursor: cursor),
     );
     unawaited(scope.browse.load());
-  }
-
-  void _onTextChanged() {
-    setState(() {});
-  }
-
-  void _onFocusChanged() {
-    setState(() => _typing = _searchFocus.hasFocus);
   }
 
   void _onQueryChanged(ListingQuery next) {
@@ -105,24 +90,22 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   void _closeSearch() {
-    _debounce?.cancel();
     _searchFocus.unfocus();
-    setState(() => _searching = false);
+    setState(() {
+      _searching = false;
+    });
   }
 
   void _onSearchChanged(String raw) {
-    MutoScope.of(context).search.textChanged(raw);
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      _runSearch(TextRules.normalizeLine(raw), remember: false);
-    });
+    if (raw.trim().isEmpty) {
+      _runSearch('', remember: false);
+      return;
+    }
   }
 
   /// A term the student chose deliberately — typed and submitted, or picked
   /// from the panel. Only these are worth remembering.
   void _onSearchSubmitted(String raw) {
-    _debounce?.cancel();
     final term = TextRules.normalizeLine(raw);
     if (_search.text != term) _search.text = term;
     _searchFocus.unfocus();
@@ -158,8 +141,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
         // the field puts the reader back where they were
         child: Stack(
           children: [
-            // rebuilt apart from the search field, so a feed update cannot
-            // take the caret away mid-typing
             ListenableBuilder(
               listenable: scope.browse,
               builder: (context, _) => ListingFeedView(
@@ -168,15 +149,17 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 onOpenListing: widget.onOpenListing,
                 emptyIcon: AppIcons.search,
                 emptyTitle: strings.browseEmptyTitle,
-                // the strip is the list's own first row, so it scrolls with
-                // the cards rather than floating apart from them
+                layout: _layout,
                 header: BrowseControls(
                   query: _query,
                   labels: labels,
                   searching: _searching,
                   searchController: _search,
                   searchFocus: _searchFocus,
+                  layout: _layout,
                   onQueryChanged: _onQueryChanged,
+                  onLayoutToggled: () =>
+                      setState(() => _layout = _layout.other),
                   onSearchOpened: _openSearch,
                   onSearchClosed: _closeSearch,
                   onSearchChanged: _onSearchChanged,
@@ -184,8 +167,12 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 ),
               ),
             ),
-            if (_typing)
-              Positioned.fill(
+            if (_searching)
+              Positioned(
+                top: AppSpacing.sm + 40 + AppSpacing.sm,
+                left: 0,
+                right: 0,
+                bottom: 0,
                 child: SearchPanel(
                   controller: scope.search,
                   hasText: _search.text.trim().isNotEmpty,

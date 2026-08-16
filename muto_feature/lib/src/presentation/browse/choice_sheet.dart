@@ -18,12 +18,19 @@ final class SheetChoice<T> {
 /// vocabulary the sheets need: a title, a list, and the one that is chosen.
 /// [deselectable] makes the chosen row a toggle: tapping it answers with
 /// nothing chosen, which is how a filter is let go of without a reset control.
+///
+/// [asChips] lays the options out as a wrap of chips instead of a column of
+/// rows. Worth it wherever the labels are one or two words — eight categories
+/// as a stack is a scroll, and as a wrap it is three lines you can take in at
+/// once. Sorting keeps the rows, because "Price, low to high" is a sentence
+/// and sentences do not belong in chips.
 Future<Picked<T>?> showChoiceSheet<T>(
   BuildContext context, {
   required String title,
   required List<SheetChoice<T>> choices,
   required T? selected,
   bool deselectable = false,
+  bool asChips = false,
 }) {
   return AppBottomSheet.show<Picked<T>>(
     context: context,
@@ -35,6 +42,7 @@ Future<Picked<T>?> showChoiceSheet<T>(
       choices: choices,
       selected: selected,
       deselectable: deselectable,
+      asChips: asChips,
     ),
   );
 }
@@ -53,12 +61,21 @@ class _ChoiceSheet<T> extends StatelessWidget {
     required this.choices,
     required this.selected,
     required this.deselectable,
+    required this.asChips,
   });
 
   final String title;
   final List<SheetChoice<T>> choices;
   final T? selected;
   final bool deselectable;
+  final bool asChips;
+
+  void _choose(BuildContext context, SheetChoice<T> choice) {
+    final chosen = choice.value == selected;
+    Navigator.of(
+      context,
+    ).pop<Picked<T>>(Picked<T>(chosen && deselectable ? null : choice.value));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,18 +89,35 @@ class _ChoiceSheet<T> extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
           child: SheetTitle(text: title, isLight: isLight),
         ),
-        for (final choice in choices)
-          _ChoiceRow<T>(
-            label: choice.label,
-            chosen: choice.value == selected,
-            isLight: isLight,
-            onTap: () {
-              final chosen = choice.value == selected;
-              Navigator.of(context).pop<Picked<T>>(
-                Picked<T>(chosen && deselectable ? null : choice.value),
-              );
-            },
-          ),
+        if (asChips)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.df,
+              AppSpacing.xs,
+              AppSpacing.df,
+              AppSpacing.sm,
+            ),
+            child: Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final choice in choices)
+                  SelectableChip(
+                    label: choice.label,
+                    selected: choice.value == selected,
+                    onTap: () => _choose(context, choice),
+                  ),
+              ],
+            ),
+          )
+        else
+          for (final choice in choices)
+            _ChoiceRow<T>(
+              label: choice.label,
+              chosen: choice.value == selected,
+              isLight: isLight,
+              onTap: () => _choose(context, choice),
+            ),
       ],
     );
   }

@@ -180,53 +180,73 @@ class _ImageCropScreenState extends State<ImageCropScreen> {
                   child: GestureDetector(
                     onScaleStart: _onScaleStart,
                     onScaleUpdate: _onScaleUpdate,
-                    child: RepaintBoundary(
-                      key: _boundaryKey,
-                      child: SizedBox(
-                        width: _viewportSide,
-                        height: _viewportSide,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          clipBehavior: Clip.hardEdge,
-                          children: [
-                            Container(color: Colors.black),
-                            // scale is applied at paint time rather than by
-                            // resizing the box: relayouting a Stack child on
-                            // every slider tick proved unreliable, where a
-                            // Transform always repaints on the next frame
-                            Transform.translate(
-                              offset: offset,
-                              child: Transform.scale(
-                                scale: scale,
-                                // Stack hands its non-positioned children
-                                // loose constraints capped at its OWN size
-                                // (300x300), so a `base` wider than that —
-                                // any landscape photo — would silently get
-                                // clamped back down to 300 here, throwing
-                                // off every pan/zoom bound computed from the
-                                // real `base`. OverflowBox is what lets the
-                                // photo actually render at its true cover
-                                // size instead of that shrunk one.
-                                child: OverflowBox(
-                                  minWidth: base.width,
-                                  maxWidth: base.width,
-                                  minHeight: base.height,
-                                  maxHeight: base.height,
-                                  child: Image(
-                                    image: _provider,
-                                    fit: BoxFit.fill,
+                    child: SizedBox(
+                      width: _viewportSide,
+                      height: _viewportSide,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          // only the photo lives inside the boundary, because
+                          // this is the thing that gets rasterized on apply —
+                          // anything drawn in here is drawn into the saved
+                          // file, which is how the framing grid used to end up
+                          // baked across every uploaded picture
+                          RepaintBoundary(
+                            key: _boundaryKey,
+                            child: SizedBox(
+                              width: _viewportSide,
+                              height: _viewportSide,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                clipBehavior: Clip.hardEdge,
+                                children: [
+                                  Container(color: Colors.black),
+                                  // scale is applied at paint time rather than
+                                  // by resizing the box: relayouting a Stack
+                                  // child on every slider tick proved
+                                  // unreliable, where a Transform always
+                                  // repaints on the next frame
+                                  Transform.translate(
+                                    offset: offset,
+                                    child: Transform.scale(
+                                      scale: scale,
+                                      // Stack hands its non-positioned children
+                                      // loose constraints capped at its OWN
+                                      // size (300x300), so a `base` wider than
+                                      // that — any landscape photo — would
+                                      // silently get clamped back down to 300
+                                      // here, throwing off every pan/zoom bound
+                                      // computed from the real `base`.
+                                      // OverflowBox is what lets the photo
+                                      // actually render at its true cover size
+                                      // instead of that shrunk one.
+                                      child: OverflowBox(
+                                        minWidth: base.width,
+                                        maxWidth: base.width,
+                                        minHeight: base.height,
+                                        maxHeight: base.height,
+                                        child: Image(
+                                          image: _provider,
+                                          fit: BoxFit.fill,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
-                            IgnorePointer(
-                              child: CustomPaint(
-                                size: const Size(_viewportSide, _viewportSide),
-                                painter: _GridPainter(),
-                              ),
+                          ),
+                          // a framing aid for the person cropping, and nothing
+                          // more: outside the boundary, so it is never part of
+                          // what gets saved
+                          IgnorePointer(
+                            child: CustomPaint(
+                              size: const Size(_viewportSide, _viewportSide),
+                              painter: _GridPainter(),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -62,23 +62,20 @@ class _MutoShellState extends State<MutoShell> {
 
   NavigatorState? get _navigator => _navigators[_destination].currentState;
 
-  /// Every destination is built up front so its stack survives a tab switch,
-  /// which also means its feed is loaded long before it is looked at. Opening
-  /// a tab therefore has to ask for fresh data rather than trusting what was
-  /// fetched at launch.
+  /// Every destination is built up front so its stack and cached feed survive
+  /// a tab switch. Explicit refresh gestures and writes are responsible for
+  /// asking the source for fresh data.
   void _selectDestination(int index) {
     setState(() => _destination = index);
 
-    final scope = MutoScope.of(context);
-    if (scope.session.identity?.isAdmin ?? false) {
-      if (index == 0) unawaited(scope.browse.refresh());
-      return;
+    // a previously empty favorites feed may become non-empty after saving on
+    // another tab, so reload that edge case without refreshing every switch
+    if (index == 1) {
+      final favorites = MutoScope.of(context).favorites;
+      if (favorites.hasLoaded && favorites.items.isEmpty) {
+        unawaited(favorites.refresh());
+      }
     }
-    unawaited(switch (index) {
-      1 => scope.favorites.refresh(),
-      2 => scope.mine.refresh(),
-      _ => scope.browse.refresh(),
-    });
   }
 
   Future<void> _handleDestinationTap(int index) async {
@@ -233,10 +230,11 @@ class _BottomBar extends StatelessWidget {
       ),
       // the home-indicator inset belongs to each destination rather than to
       // the bar, so a thumb landing low still lands on something
-      padding: const EdgeInsets.only(
-        left: AppSpacing.df,
-        right: AppSpacing.df,
-        top: AppSpacing.xs,
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.df,
+        AppSpacing.xs,
+        AppSpacing.df,
+        MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
       ),
       child: Row(
         children: [
@@ -246,8 +244,6 @@ class _BottomBar extends StatelessWidget {
                 icon: icons[i],
                 label: labels[i],
                 selected: i == current,
-                bottomInset:
-                    MediaQuery.paddingOf(context).bottom + AppSpacing.xs,
                 onTap: () => onSelected(i),
               ),
             ),
@@ -262,17 +258,12 @@ class _NavButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.selected,
-    required this.bottomInset,
     required this.onTap,
   });
 
   final AppIconData icon;
   final String label;
   final bool selected;
-
-  /// Sits inside the tap target, under the pill, so the strip above the home
-  /// indicator is not dead space.
-  final double bottomInset;
 
   final VoidCallback onTap;
 
@@ -291,46 +282,39 @@ class _NavButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: AppSpacing.borderRadiusMd,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: bottomInset),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // the pill widens under the icon as a destination is chosen,
-              // rather than appearing at full size in one frame
-              AnimatedContainer(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(
-                  horizontal: selected ? AppSpacing.lg : AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? (isLight
-                            ? AppColors.primaryLight
-                            : AppColors.primaryLightDark)
-                      : Colors.transparent,
-                  borderRadius: AppSpacing.borderRadiusMd,
-                ),
-                child: AppIcon(icon, size: 22, color: accent),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // the pill widens under the icon as a destination is chosen,
+            // rather than appearing at full size in one frame
+            AnimatedContainer(
+              duration: _duration,
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.symmetric(
+                horizontal: selected ? AppSpacing.lg : AppSpacing.sm,
+                vertical: AppSpacing.xs,
               ),
-              const SizedBox(height: AppSpacing.xs),
-              AnimatedDefaultTextStyle(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                style: AppTextStyles.labelSmall.copyWith(
-                  color: accent,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              decoration: BoxDecoration(
+                color: selected
+                    ? (isLight
+                          ? AppColors.primaryLight
+                          : AppColors.primaryLightDark)
+                    : Colors.transparent,
+                borderRadius: AppSpacing.borderRadiusMd,
               ),
-            ],
-          ),
+              child: AppIcon(icon, size: 22, color: accent),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            AnimatedDefaultTextStyle(
+              duration: _duration,
+              curve: Curves.easeOutCubic,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: accent,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
         ),
       ),
     );

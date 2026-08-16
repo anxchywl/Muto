@@ -30,7 +30,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         key: CacheKeys.favorites,
         loader: (cursor) => scope.dependencies.favorites.page(cursor: cursor),
       );
-      unawaited(scope.favorites.load(force: true));
+      unawaited(scope.favorites.load());
     });
   }
 
@@ -53,6 +53,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           feed: scope.favorites,
           labels: labels,
           onOpenListing: widget.onOpenListing,
+          showFavoriteToggle: false,
+          itemFilter: (listing) => scope.savedListings.isSaved(listing.id),
+          extraItems: scope.savedListings.optimisticListings,
           emptyIcon: AppIcons.heartBroken,
           emptyTitle: strings.favoritesEmptyTitle,
         ),

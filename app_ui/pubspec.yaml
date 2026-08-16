@@ -16,6 +16,7 @@ dependencies:
   flutter_svg: ^2.0.0
   google_fonts: ^6.3.2
   lucide_flutter: ^1.16.0
+  simple_icons: ^16.23.0
 
 dev_dependencies:
   flutter_test:

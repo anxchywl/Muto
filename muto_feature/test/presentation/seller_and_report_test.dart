@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:muto_feature/muto_feature.dart';
@@ -93,6 +95,88 @@ void main() {
       expect(find.text('Madina'), findsWidgets);
     });
 
+    testWidgets('names the page, not the seller, in the bar', (tester) async {
+      await _openListing(tester, _lamp);
+      await _openSeller(tester);
+
+      expect(find.text('Seller info'), findsOneWidget);
+      // the name belongs to the page, and is not repeated above it
+      expect(find.text('Madina'), findsOneWidget);
+    });
+
+    testWidgets('says how to reach them, right on the page', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _openListing(tester, _lamp);
+      await _openSeller(tester);
+
+      expect(find.text('How to reach'), findsOneWidget);
+      // a row of text, not a button — the label reads "Telegram: @handle" in
+      // one line, so the row is found by what it announces rather than by an
+      // exact match on a standalone "Telegram"
+      expect(
+        find.bySemanticsLabel('Copy Telegram @sample_madina'),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+
+    testWidgets('copies the handle when a contact row is tapped', (
+      tester,
+    ) async {
+      await _openListing(tester, _lamp);
+      await _openSeller(tester);
+
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await tester.tap(find.textContaining('Telegram:'));
+      await tester.pumpAndSettle();
+
+      expect(copied, '@sample_madina');
+
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('withholds the handles from an unverified student', (
+      tester,
+    ) async {
+      await _openListing(
+        tester,
+        _lamp,
+        viewer: const Identity(
+          userId: 'usr_009',
+          displayName: 'Aruzhan',
+          isVerified: false,
+        ),
+      );
+      await _openSeller(tester);
+
+      expect(find.text('How to reach them'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Copy Telegram @sample_madina'),
+        findsNothing,
+      );
+      expect(
+        find.text('Verify your student account to see contact details.'),
+        findsWidgets,
+      );
+    });
+
     testWidgets('lists what else they have, and not what they sold', (
       tester,
     ) async {
@@ -110,7 +194,9 @@ void main() {
       await tester.tap(find.byType(ListingCard).first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Listing'), findsOneWidget);
+      // the detail screen has no title bar of its own; its seller card is
+      // what says we are looking at one listing rather than a profile
+      expect(find.text('Seller'), findsOneWidget);
     });
 
     testWidgets('keeps the name on screen when the profile cannot load', (
@@ -141,7 +227,8 @@ void main() {
       await tester.pageBack();
       await tester.pumpAndSettle();
 
-      expect(find.text('Listing'), findsOneWidget);
+      expect(find.text(_lamp), findsWidgets);
+      expect(find.text('Seller'), findsOneWidget);
     });
   });
 
@@ -156,39 +243,50 @@ void main() {
       await _openListing(tester, _lamp, viewer: _madina);
 
       expect(find.byTooltip('Report this listing'), findsNothing);
-      expect(find.text('Your listing'), findsOneWidget);
     });
 
-    testWidgets('sends once a reason is chosen, and says so', (tester) async {
+    testWidgets('sends once a reason is written, and says so', (tester) async {
       await _openListing(tester, _lamp);
 
       await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Misleading'));
+      await tester.enterText(
+        find.byType(TextField),
+        'the listing is not what it claims to be',
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Send report'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Report sent'), findsOneWidget);
+      // the flag button turns into a tick that says so, rather than a toast
+      expect(find.byTooltip('Report sent'), findsOneWidget);
+      expect(find.byTooltip('Report this listing'), findsNothing);
+
       await _settleToast(tester);
+
+      // and quietly goes back to offering the action again
+      expect(find.byTooltip('Report this listing'), findsOneWidget);
     });
 
-    testWidgets('asks for a note when the reason does not say enough', (
+    testWidgets('keeps sending disabled until a note is written', (
       tester,
     ) async {
       await _openListing(tester, _lamp);
 
       await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Something else'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Send report'));
+
+      // nothing written yet: the button offers no action to tap
+      final sendButton = find.ancestor(
+        of: find.text('Send report'),
+        matching: find.byType(AppPrimaryButton),
+      );
+      expect(tester.widget<AppPrimaryButton>(sendButton).onPressed, isNull);
+
+      await tester.enterText(find.byType(TextField), 'wrong price listed');
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Say briefly what is wrong with this listing.'),
-        findsOneWidget,
-      );
+      expect(tester.widget<AppPrimaryButton>(sendButton).onPressed, isNotNull);
     });
 
     testWidgets('keeps the sheet open and explains when it cannot send', (
@@ -199,7 +297,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Report this listing'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Not allowed'));
+      await tester.enterText(find.byType(TextField), 'this is not allowed');
       await tester.pumpAndSettle();
 
       faults.offline = true;

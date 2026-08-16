@@ -11,6 +11,7 @@ library;
 export 'src/feed_search_field.dart';
 export 'src/filter_pill.dart';
 export 'src/listing_card.dart';
+export 'src/listing_grid_tile.dart';
 export 'src/listing_image.dart';
 export 'src/listing_skeleton.dart';
 export 'src/meta_chip.dart';

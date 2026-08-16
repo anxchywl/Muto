@@ -40,28 +40,37 @@ class SelectableChip extends StatelessWidget {
         button: true,
         child: InkWell(
           onTap: onTap,
-          borderRadius: AppSpacing.borderRadiusSm,
+          borderRadius: AppSpacing.borderRadiusRound,
           // the height is a floor and the width is the label's: an alignment on
           // the container would stretch the chip across whatever row it is in
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: minHeight),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.sm,
               ),
               decoration: BoxDecoration(
                 color: background,
-                borderRadius: AppSpacing.borderRadiusSm,
+                borderRadius: AppSpacing.borderRadiusRound,
               ),
               child: Center(
                 widthFactor: 1,
                 heightFactor: 1,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.chip.copyWith(color: foreground),
+                child: AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  style: AppTextStyles.chip.copyWith(
+                    color: foreground,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),

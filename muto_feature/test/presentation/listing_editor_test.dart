@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -73,13 +74,29 @@ Future<void> _tapInSheet(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _next(WidgetTester tester) => _tapInSheet(tester, 'Next');
+/// Puts the keyboard away, the way a student does before reaching for the
+/// step buttons — focus mode hides them behind Done while a field is live.
+Future<void> _doneTyping(WidgetTester tester) async {
+  if (_inSheet('Done').evaluate().isEmpty) return;
+  await _tapInSheet(tester, 'Done');
+}
+
+Future<void> _next(WidgetTester tester) async {
+  await _doneTyping(tester);
+  await _tapInSheet(tester, 'Next');
+}
+
+/// Types into a field and then leaves it, so the sheet is back out of focus
+/// mode and showing its own controls again.
+Future<void> _type(WidgetTester tester, Finder field, String text) async {
+  await tester.enterText(field, text);
+  await tester.pumpAndSettle();
+  await _doneTyping(tester);
+}
 
 /// Fills in what the first two steps insist on, for tests about a later one.
-Future<void> _fillBasics(WidgetTester tester, {String title = 'Kettle'}) async {
-  await tester.enterText(find.byType(TextField).first, title);
-  await tester.pumpAndSettle();
-}
+Future<void> _fillBasics(WidgetTester tester, {String title = 'Kettle'}) =>
+    _type(tester, find.byType(TextField).first, title);
 
 void main() {
   setUpAll(() {
@@ -124,8 +141,7 @@ void main() {
     await _openEditor(tester);
     await _fillBasics(tester);
     await _next(tester);
-    await tester.enterText(find.byType(TextField).first, '4500');
-    await tester.pumpAndSettle();
+    await _type(tester, find.byType(TextField).first, '4500');
     await _next(tester);
 
     expect(_inSheet('0 of 6'), findsOneWidget);
@@ -165,20 +181,27 @@ void main() {
     await _openEditor(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Kettle, barely used');
-    await tester.enterText(find.byType(TextField).at(1), 'Boils water');
+    await _type(tester, find.byType(TextField).at(1), 'Boils water');
     await tester.pumpAndSettle();
     await _next(tester);
 
-    await tester.enterText(find.byType(TextField).first, '4500');
-    await tester.pumpAndSettle();
+    await _type(tester, find.byType(TextField).first, '4500');
     await _next(tester);
     await _next(tester);
 
     expect(find.text('Kettle, barely used'), findsWidgets);
 
     await tester.tap(_inSheet('Publish'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    // the submit button turns into the confirmation rather than handing it to
+    // a toast that would land over whatever is behind the closing sheet
+    expect(find.text('Listing published'), findsOneWidget);
+
     await _settleToast(tester);
 
+    expect(find.text('Listing published'), findsNothing);
     expect(find.text('Kettle, barely used'), findsWidgets);
   });
 
@@ -190,29 +213,30 @@ void main() {
 
     await _fillBasics(tester, title: 'Desk lamp, warm light');
     await _next(tester);
-    await tester.enterText(find.byType(TextField).first, '3000');
-    await tester.pumpAndSettle();
+    await _type(tester, find.byType(TextField).first, '3000');
     await _next(tester);
     await _next(tester);
 
-    expect(
-      find.text('This is how your listing will look to other students.'),
-      findsOneWidget,
-    );
     expect(find.text('Desk lamp, warm light'), findsOneWidget);
     expect(find.textContaining('₸'), findsWidgets);
+    expect(find.textContaining('Active for 30 days'), findsOneWidget);
   });
 
-  testWidgets('refuses to move on without a title', (tester) async {
+  testWidgets('keeps Next disabled without a title', (tester) async {
     await _pump(tester);
     await _openEditor(tester);
 
-    await _next(tester);
-
-    expect(
-      find.text('Give the listing a title of at least 3 characters.'),
-      findsOneWidget,
+    final button = tester.widget<AppPrimaryButton>(
+      find.ancestor(
+        of: _inSheet('Next'),
+        matching: find.byType(AppPrimaryButton),
+      ),
     );
+    expect(button.onPressed, isNull);
+
+    await tester.tap(_inSheet('Next'));
+    await tester.pumpAndSettle();
+
     expect(
       find.text('Preview'),
       findsOneWidget,
@@ -228,7 +252,7 @@ void main() {
     await _openEditor(tester);
 
     expect(
-      find.text('Give the listing a title of at least 3 characters.'),
+      find.text('Give the listing a title of at least 1 character.'),
       findsNothing,
       reason: 'a form should not scold someone who has not finished typing',
     );
@@ -270,8 +294,7 @@ void main() {
     expect(_inSheet('USD'), findsOneWidget);
 
     await _tapInSheet(tester, 'USD');
-    await tester.enterText(find.byType(TextField).first, '9000');
-    await tester.pumpAndSettle();
+    await _type(tester, find.byType(TextField).first, '9000');
 
     await _next(tester);
     await _next(tester);
@@ -279,20 +302,5 @@ void main() {
     await _settleToast(tester);
 
     expect(find.textContaining(r'$90.00'), findsWidgets);
-  });
-
-  testWidgets('leaving the editor asks before throwing the draft away', (
-    tester,
-  ) async {
-    await _pump(tester);
-    await _openEditor(tester);
-
-    await _fillBasics(tester, title: 'Half typed');
-
-    await tester.tap(find.byTooltip('Discard'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Discard this listing?'), findsOneWidget);
-    expect(find.text('Keep editing'), findsOneWidget);
   });
 }

@@ -20,6 +20,7 @@ import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
 import '../images/listing_image_provider.dart';
 import '../listing/listing_detail_preview_screen.dart';
+import '../shared/focus_mode.dart';
 import 'editor_messages.dart';
 import 'image_crop_screen.dart';
 import 'image_picking.dart';
@@ -62,6 +63,10 @@ class ListingEditorSheet extends StatefulWidget {
   State<ListingEditorSheet> createState() => _ListingEditorSheetState();
 }
 
+/// The typed-into fields of the editor, so focus mode can name the one in
+/// hand and fold everything else.
+enum _Field { title, description, price, wantedItems }
+
 class _ListingEditorSheetState extends State<ListingEditorSheet> {
   ListingEditorController? _editor;
   final ImagePicker _picker = ImagePicker();
@@ -72,6 +77,10 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
   final TextEditingController _description = TextEditingController();
   final TextEditingController _price = TextEditingController();
   final TextEditingController _wantedItems = TextEditingController();
+
+  /// Owns the fields' focus nodes, and says which one has the keyboard so the
+  /// rest of the sheet can get out of its way.
+  final SheetFocusMode _focus = SheetFocusMode();
 
   int _step = 0;
 
@@ -115,6 +124,7 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
     _description.dispose();
     _price.dispose();
     _wantedItems.dispose();
+    _focus.dispose();
     _editor?.dispose();
     super.dispose();
   }
@@ -162,8 +172,8 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
     final editor = _editor;
     if (editor == null) return;
 
-    // the button stays live rather than going dead, so refusing to move on can
-    // say why instead of leaving the student guessing
+    // the button is already dead when the step is short of something, so
+    // reaching here at all means there is nothing left to refuse
     if (!_isStepValid(_step)) {
       editor.revealIssues();
       return;
@@ -174,7 +184,7 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
       return;
     }
 
-    FocusScope.of(context).unfocus();
+    _focus.release();
     setState(() {
       _movingForward = true;
       _step++;
@@ -183,12 +193,15 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
 
   void _back() {
     if (_step == 0) return;
-    FocusScope.of(context).unfocus();
+    _focus.release();
     setState(() {
       _movingForward = false;
       _step--;
     });
   }
+
+  /// Held only long enough for the submit button to show a tick.
+  bool _saved = false;
 
   Future<void> _submit(MutoLocalizations strings) async {
     final editor = _editor;
@@ -196,35 +209,12 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
     final saved = await editor.submit();
     if (saved == null || !mounted) return;
 
-    AppToast.showSuccess(
-      context,
-      editor.isEditing ? strings.listingSaved : strings.listingPublished,
-    );
+    // the button that was pressed says it landed, and the sheet then closes
+    // on its own — a toast would arrive over whatever is behind the sheet
+    setState(() => _saved = true);
+    await Future<void>.delayed(_confirmationHold);
+    if (!mounted) return;
     Navigator.of(context).pop(saved);
-  }
-
-  Future<void> _confirmDiscard(MutoLocalizations strings) async {
-    final editor = _editor;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.discardDraftTitle),
-        content: Text(strings.discardDraftMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(strings.actionKeepEditing),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(strings.actionDiscard),
-          ),
-        ],
-      ),
-    );
-    if (discard != true || !mounted) return;
-    await editor?.discard();
-    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -233,10 +223,15 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final editor = _editor;
 
-    return AnimatedPadding(
-      // the sheet rides the keyboard rather than being covered by it
-      duration: _duration,
-      curve: Curves.easeOutCubic,
+    return Padding(
+      // the sheet rides the keyboard rather than being covered by it.
+      //
+      // deliberately not an AnimatedPadding: the platform already animates
+      // this inset frame by frame as the keyboard rises, so animating toward
+      // it again left the sheet chasing a moving target — it lagged behind
+      // the keyboard on the way up and then snapped level once the keyboard
+      // settled, which is the flick that showed up right as a field took
+      // focus. tracking the inset directly is what keeps them locked together
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -259,19 +254,24 @@ class _ListingEditorSheetState extends State<ListingEditorSheet> {
                     child: Center(child: AppLoader()),
                   )
                 : ListenableBuilder(
-                    listenable: editor,
+                    // the sheet is rebuilt both by the draft changing and by
+                    // the keyboard moving between fields, and the two arrive
+                    // independently
+                    listenable: Listenable.merge([editor, _focus]),
                     builder: (context, _) => _Body(
                       editor: editor,
                       picker: _picker,
+                      focus: _focus,
                       step: _step,
                       movingForward: _movingForward,
                       title: _title,
                       description: _description,
                       price: _price,
                       wantedItems: _wantedItems,
+                      saved: _saved,
+                      isStepValid: _isStepValid(_step),
                       onPrimary: () => _onPrimary(strings),
                       onBack: _back,
-                      onClose: () => unawaited(_confirmDiscard(strings)),
                     ),
                   ),
           ),
@@ -285,33 +285,38 @@ class _Body extends StatelessWidget {
   const _Body({
     required this.editor,
     required this.picker,
+    required this.focus,
     required this.step,
     required this.movingForward,
     required this.title,
     required this.description,
     required this.price,
     required this.wantedItems,
+    required this.saved,
+    required this.isStepValid,
     required this.onPrimary,
     required this.onBack,
-    required this.onClose,
   });
 
   final ListingEditorController editor;
   final ImagePicker picker;
+  final SheetFocusMode focus;
   final int step;
   final bool movingForward;
   final TextEditingController title;
   final TextEditingController description;
   final TextEditingController price;
   final TextEditingController wantedItems;
+  final bool saved;
+  final bool isStepValid;
   final VoidCallback onPrimary;
   final VoidCallback onBack;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final strings = MutoLocalizations.of(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
+    focus.setKeyboardVisible(MediaQuery.viewInsetsOf(context).bottom > 0);
     final labels = ListingLabels(
       strings,
       Localizations.localeOf(context).toString(),
@@ -325,11 +330,14 @@ class _Body extends StatelessWidget {
           text: editor.isEditing
               ? strings.editorEditTitle
               : strings.editorNewTitle,
-          closeLabel: strings.actionDiscard,
           isLight: isLight,
-          onClose: onClose,
         ),
-        _Progress(step: step, strings: strings),
+        // the stepper says where you are in a form you cannot see while the
+        // keyboard is up, so it is the first thing to go
+        FocusFold(
+          hidden: focus.hidesChrome,
+          child: _Progress(step: step, strings: strings),
+        ),
         Flexible(
           // the sheet grows and shrinks with the step rather than jumping to
           // the height of whichever one is longest
@@ -357,10 +365,19 @@ class _Body extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 key: ValueKey<int>(step),
-                padding: AppSpacing.screenPadding,
+                // the bottom inset goes with the chrome: with one field left
+                // and Done right under it, a full gap on both sides of the
+                // seam is twice as much air as that pairing wants
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.df,
+                  AppSpacing.df,
+                  AppSpacing.df,
+                  focus.hidesChrome ? 0 : AppSpacing.df,
+                ),
                 child: _Step(
                   editor: editor,
                   picker: picker,
+                  focus: focus,
                   step: step,
                   labels: labels,
                   title: title,
@@ -372,12 +389,26 @@ class _Body extends StatelessWidget {
             ),
           ),
         ),
-        _BottomBar(
-          step: step,
-          isEditing: editor.isEditing,
-          isSaving: editor.isSaving,
-          onPrimary: onPrimary,
-          onBack: onBack,
+        // Back/Next belong to a form you can see; while typing, the only
+        // thing worth offering is the way back out to it
+        FocusModeActions(
+          isTyping: focus.isTyping,
+          doneLabel: strings.actionDone,
+          onDone: focus.release,
+          // the same inset _BottomBar carries, so the bar is exactly as tall
+          // either way and swapping the button moves nothing above it. the
+          // tightening up against the field is done by the scroll view
+          // dropping its own bottom padding, where it animates with the folds
+          donePadding: AppSpacing.screenPadding,
+          actions: _BottomBar(
+            step: step,
+            isEditing: editor.isEditing,
+            isSaving: editor.isSaving,
+            saved: saved,
+            isStepValid: isStepValid,
+            onPrimary: onPrimary,
+            onBack: onBack,
+          ),
         ),
       ],
     );
@@ -408,17 +439,10 @@ class _Handle extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({
-    required this.text,
-    required this.closeLabel,
-    required this.isLight,
-    required this.onClose,
-  });
+  const _Header({required this.text, required this.isLight});
 
   final String text;
-  final String closeLabel;
   final bool isLight;
-  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -426,21 +450,10 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.df,
         AppSpacing.sm,
-        AppSpacing.sm,
+        AppSpacing.df,
         0,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SheetTitle(text: text, isLight: isLight),
-          ),
-          IconButton(
-            icon: const AppIcon(AppIcons.close, size: 20),
-            tooltip: closeLabel,
-            onPressed: onClose,
-          ),
-        ],
-      ),
+      child: SheetTitle(text: text, isLight: isLight),
     );
   }
 }
@@ -476,24 +489,18 @@ class _Progress extends StatelessWidget {
         ),
         child: Column(
           children: [
-            ClipRRect(
-              borderRadius: AppSpacing.borderRadiusRound,
-              child: TweenAnimationBuilder<double>(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(
-                  begin: 0,
-                  end: (step + 1) / ListingEditorSheet.stepCount,
-                ),
-                builder: (context, value, _) => LinearProgressIndicator(
-                  value: value,
-                  minHeight: AppSpacing.xs,
-                  backgroundColor: AppColors.fieldBackground,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.primary,
-                  ),
-                ),
-              ),
+            // one segment per step rather than a single continuous bar: each
+            // one grows from empty to full as it is reached, and shrinks back
+            // to empty the moment the student steps behind it, so the bar
+            // itself says which steps are actually done rather than just how
+            // far along a fraction is
+            Row(
+              children: [
+                for (var i = 0; i < labels.length; i++) ...[
+                  if (i > 0) const SizedBox(width: AppSpacing.xs),
+                  Expanded(child: _ProgressSegment(filled: i <= step)),
+                ],
+              ],
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
@@ -520,11 +527,49 @@ class _Progress extends StatelessWidget {
   }
 }
 
+/// One step's share of the progress row.
+///
+/// A track the width of its step, filled from the left on a growing [width]
+/// fraction — the same shape [TweenAnimationBuilder] is already trusted for
+/// elsewhere in this sheet, which always continues smoothly from wherever it
+/// is currently drawn rather than restarting at 0 on every rebuild.
+class _ProgressSegment extends StatelessWidget {
+  const _ProgressSegment({required this.filled});
+
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: AppSpacing.borderRadiusRound,
+      child: Container(
+        height: AppSpacing.xs,
+        color: AppColors.fieldBackground,
+        alignment: Alignment.centerLeft,
+        child: TweenAnimationBuilder<double>(
+          duration: _duration,
+          curve: Curves.easeOutCubic,
+          tween: Tween<double>(begin: 0, end: filled ? 1 : 0),
+          builder: (context, value, _) => FractionallySizedBox(
+            widthFactor: value,
+            heightFactor: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: AppColors.primary),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.step,
     required this.isEditing,
     required this.isSaving,
+    required this.saved,
+    required this.isStepValid,
     required this.onPrimary,
     required this.onBack,
   });
@@ -532,6 +577,14 @@ class _BottomBar extends StatelessWidget {
   final int step;
   final bool isEditing;
   final bool isSaving;
+
+  /// The write went through; the button says so before the sheet closes.
+  final bool saved;
+
+  /// Whether the current step has everything it asks for. The button greys
+  /// out rather than staying live and refusing on tap, so the form never
+  /// needs an inline error to say the same thing twice.
+  final bool isStepValid;
   final VoidCallback onPrimary;
   final VoidCallback onBack;
 
@@ -539,33 +592,66 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = MutoLocalizations.of(context);
     final isLast = step == ListingEditorSheet.stepCount - 1;
+    final enabled = saved || (!isSaving && isStepValid);
 
     return Padding(
       padding: AppSpacing.screenPadding,
-      child: Row(
+      child: Column(
         children: [
-          if (step > 0) ...[
-            Expanded(
-              child: AppSecondaryButton(
-                text: strings.actionBack,
-                size: AppButtonSize.medium,
-                onPressed: isSaving ? null : onBack,
+          Row(
+            children: [
+              if (step > 0) ...[
+                Expanded(
+                  child: AppSecondaryButton(
+                    text: strings.actionBack,
+                    size: AppButtonSize.medium,
+                    onPressed: isSaving ? null : onBack,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+              ],
+              Expanded(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  opacity: enabled ? 1 : 0.45,
+                  child: AppPrimaryButton(
+                    text: saved
+                        ? (isEditing
+                              ? strings.listingSaved
+                              : strings.listingPublished)
+                        : isLast
+                        ? (isEditing
+                              ? strings.actionSaveChanges
+                              : strings.actionPublish)
+                        : strings.actionNext,
+                    size: AppButtonSize.medium,
+                    isLoading: isSaving && !saved,
+                    icon: saved
+                        ? const AppIcon(
+                            AppIcons.check,
+                            size: 18,
+                            color: AppColors.white,
+                          )
+                        : null,
+                    // a confirmed button keeps its full colour rather than greying
+                    // out, so the tick reads as "done" and not as "unavailable"
+                    onPressed: saved ? () {} : (enabled ? onPrimary : null),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (isLast) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              strings.editorListingLifetimeNotice,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
           ],
-          Expanded(
-            child: AppPrimaryButton(
-              text: isLast
-                  ? (isEditing
-                        ? strings.actionSaveChanges
-                        : strings.actionPublish)
-                  : strings.actionNext,
-              size: AppButtonSize.medium,
-              isLoading: isSaving,
-              onPressed: isSaving ? null : onPrimary,
-            ),
-          ),
         ],
       ),
     );
@@ -576,6 +662,7 @@ class _Step extends StatelessWidget {
   const _Step({
     required this.editor,
     required this.picker,
+    required this.focus,
     required this.step,
     required this.labels,
     required this.title,
@@ -586,6 +673,7 @@ class _Step extends StatelessWidget {
 
   final ListingEditorController editor;
   final ImagePicker picker;
+  final SheetFocusMode focus;
   final int step;
   final ListingLabels labels;
   final TextEditingController title;
@@ -607,6 +695,7 @@ class _Step extends StatelessWidget {
             editor: editor,
             labels: labels,
             issues: issues,
+            focus: focus,
             title: title,
             description: description,
           ),
@@ -614,6 +703,7 @@ class _Step extends StatelessWidget {
             editor: editor,
             labels: labels,
             issues: issues,
+            focus: focus,
             price: price,
             wantedItems: wantedItems,
           ),
@@ -637,6 +727,7 @@ class _Basics extends StatelessWidget {
     required this.editor,
     required this.labels,
     required this.issues,
+    required this.focus,
     required this.title,
     required this.description,
   });
@@ -644,6 +735,7 @@ class _Basics extends StatelessWidget {
   final ListingEditorController editor;
   final ListingLabels labels;
   final ListingValidation issues;
+  final SheetFocusMode focus;
   final TextEditingController title;
   final TextEditingController description;
 
@@ -655,44 +747,68 @@ class _Basics extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Choices<ListingKind>(
-          title: strings.filterKind,
-          values: ListingKind.values,
-          selected: draft.kind,
-          labelOf: labels.kind,
-          onSelected: (kind) => editor.edit(
-            (current) => current.copyWith(
-              kind: kind,
-              clearPrice: !kind.requiresPrice,
-              clearWantedItems: !kind.allowsWantedItems,
+        FocusFold(
+          animateSize: false,
+          hidden: focus.hidesChrome,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Choices<ListingKind>(
+                title: strings.filterKind,
+                values: ListingKind.values,
+                selected: draft.kind,
+                labelOf: labels.kind,
+                fullWidth: true,
+                onSelected: (kind) => editor.edit(
+                  (current) => current.copyWith(
+                    kind: kind,
+                    clearPrice: !kind.requiresPrice,
+                    clearWantedItems: !kind.allowsWantedItems,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+
+        FocusFold(
+          animateSize: false,
+          hidden: focus.hides(_Field.title),
+          child: AppTextField(
+            label: strings.editorFieldTitle,
+            controller: title,
+            focusNode: focus.nodeFor(_Field.title),
+            maxLength: 80,
+            // single-line fields hand over to the next one; the description is
+            // deliberately left alone, since a paragraph needs its return key
+            textInputAction: TextInputAction.next,
+            errorText: issueMessage(
+              issues.firstFor(ListingField.title),
+              strings,
             ),
+            onChanged: (value) =>
+                editor.edit((current) => current.copyWith(title: value)),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
 
-        AppTextField(
-          label: strings.editorFieldTitle,
-          controller: title,
-          maxLength: 80,
-          // single-line fields hand over to the next one; the description is
-          // deliberately left alone, since a paragraph needs its return key
-          textInputAction: TextInputAction.next,
-          errorText: issueMessage(issues.firstFor(ListingField.title), strings),
-          onChanged: (value) =>
-              editor.edit((current) => current.copyWith(title: value)),
-        ),
-        const SizedBox(height: AppSpacing.df),
+        FocusGap(hidden: focus.hidesChrome, animateSize: false),
 
-        AppTextField(
-          label: strings.editorFieldDescription,
-          controller: description,
-          maxLines: 4,
-          errorText: issueMessage(
-            issues.firstFor(ListingField.description),
-            strings,
+        FocusFold(
+          animateSize: false,
+          hidden: focus.hides(_Field.description),
+          child: AppTextField(
+            label: strings.editorFieldDescription,
+            controller: description,
+            focusNode: focus.nodeFor(_Field.description),
+            maxLines: 4,
+            errorText: issueMessage(
+              issues.firstFor(ListingField.description),
+              strings,
+            ),
+            onChanged: (value) =>
+                editor.edit((current) => current.copyWith(description: value)),
           ),
-          onChanged: (value) =>
-              editor.edit((current) => current.copyWith(description: value)),
         ),
       ],
     );
@@ -704,6 +820,7 @@ class _Details extends StatelessWidget {
     required this.editor,
     required this.labels,
     required this.issues,
+    required this.focus,
     required this.price,
     required this.wantedItems,
   });
@@ -711,6 +828,7 @@ class _Details extends StatelessWidget {
   final ListingEditorController editor;
   final ListingLabels labels;
   final ListingValidation issues;
+  final SheetFocusMode focus;
   final TextEditingController price;
   final TextEditingController wantedItems;
 
@@ -723,43 +841,63 @@ class _Details extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (draft.kind.requiresPrice) ...[
-          _PriceField(editor: editor, issues: issues, field: price),
-          const SizedBox(height: AppSpacing.df),
+          FocusFold(
+            animateSize: false,
+            hidden: focus.hides(_Field.price),
+            child: _PriceField(editor: editor, focus: focus, field: price),
+          ),
+          FocusGap(hidden: focus.hidesChrome, animateSize: false),
         ],
 
         if (draft.kind.allowsWantedItems) ...[
-          AppTextField(
-            label: strings.editorFieldLookingFor,
-            controller: wantedItems,
-            maxLength: 200,
-            textInputAction: TextInputAction.done,
-            errorText: issueMessage(
-              issues.firstFor(ListingField.wantedItems),
-              strings,
+          FocusFold(
+            animateSize: false,
+            hidden: focus.hides(_Field.wantedItems),
+            child: AppTextField(
+              label: strings.editorFieldLookingFor,
+              controller: wantedItems,
+              focusNode: focus.nodeFor(_Field.wantedItems),
+              maxLength: 200,
+              textInputAction: TextInputAction.done,
+              errorText: issueMessage(
+                issues.firstFor(ListingField.wantedItems),
+                strings,
+              ),
+              onChanged: (value) => editor.edit(
+                (current) => current.copyWith(wantedItems: value),
+              ),
             ),
-            onChanged: (value) =>
-                editor.edit((current) => current.copyWith(wantedItems: value)),
           ),
-          const SizedBox(height: AppSpacing.df),
+          FocusGap(hidden: focus.hidesChrome, animateSize: false),
         ],
 
-        _Choices<ListingCondition>(
-          title: strings.filterCondition,
-          values: ListingCondition.values,
-          selected: draft.condition,
-          labelOf: labels.condition,
-          onSelected: (value) =>
-              editor.edit((current) => current.copyWith(condition: value)),
-        ),
-        const SizedBox(height: AppSpacing.lg),
+        FocusFold(
+          animateSize: false,
+          hidden: focus.hidesChrome,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Choices<ListingCondition>(
+                title: strings.filterCondition,
+                values: ListingCondition.values,
+                selected: draft.condition,
+                labelOf: labels.condition,
+                onSelected: (value) => editor.edit(
+                  (current) => current.copyWith(condition: value),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
 
-        _Choices<ListingCategory>(
-          title: strings.filterCategory,
-          values: ListingCategory.values,
-          selected: draft.category,
-          labelOf: labels.category,
-          onSelected: (value) =>
-              editor.edit((current) => current.copyWith(category: value)),
+              _Choices<ListingCategory>(
+                title: strings.filterCategory,
+                values: ListingCategory.values,
+                selected: draft.category,
+                labelOf: labels.category,
+                onSelected: (value) =>
+                    editor.edit((current) => current.copyWith(category: value)),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -783,21 +921,49 @@ class _Preview extends StatelessWidget {
     final priceText = labels.priceOf(draft.price, draft.kind);
     final sellerName = scope.session.identity?.displayName ?? '';
 
+    void openFullPreview() => unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ListingDetailPreviewScreen(
+            draft: draft,
+            labels: labels,
+            sellerDisplayName: sellerName,
+          ),
+        ),
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          strings.editorPreviewHint,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          strings.editorPreviewFeedLabel,
-          style: AppTextStyles.labelSmall.copyWith(
-            color: AppColors.textSecondary,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                strings.editorPreviewFeedLabel,
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            Semantics(
+              button: true,
+              label: strings.editorPreviewOpenFullPage,
+              excludeSemantics: true,
+              child: InkWell(
+                borderRadius: AppSpacing.borderRadiusRound,
+                onTap: openFullPreview,
+                child: const Padding(
+                  padding: EdgeInsets.all(AppSpacing.xs),
+                  child: AppIcon(
+                    AppIcons.chevronRight,
+                    size: 18,
+                    color: AppColors.iconSecondary,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.xs),
         // the same card the feed itself renders, so this is not an
@@ -805,40 +971,13 @@ class _Preview extends StatelessWidget {
         ListingCard(
           title: title,
           priceText: priceText,
-          metaLabel: labels.condition(draft.condition),
           semanticLabel: strings.listingSemantics(title, priceText),
           imageSemanticLabel: strings.listingImageSemantics(title),
           image: resolveListingImage(
             scope.dependencies.imageLocator,
             draft.images.isEmpty ? null : draft.images.first,
           ),
-          onTap: () => unawaited(
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ListingDetailPreviewScreen(
-                  draft: draft,
-                  labels: labels,
-                  sellerDisplayName: sellerName,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        AppSecondaryButton(
-          text: strings.editorPreviewOpenFullPage,
-          size: AppButtonSize.medium,
-          onPressed: () => unawaited(
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => ListingDetailPreviewScreen(
-                  draft: draft,
-                  labels: labels,
-                  sellerDisplayName: sellerName,
-                ),
-              ),
-            ),
-          ),
+          onTap: openFullPreview,
         ),
       ],
     );
@@ -857,12 +996,12 @@ String _failureMessage(MutoFailure failure, MutoLocalizations strings) {
 class _PriceField extends StatelessWidget {
   const _PriceField({
     required this.editor,
-    required this.issues,
+    required this.focus,
     required this.field,
   });
 
   final ListingEditorController editor;
-  final ListingValidation issues;
+  final SheetFocusMode focus;
   final TextEditingController field;
 
   @override
@@ -870,10 +1009,6 @@ class _PriceField extends StatelessWidget {
     final strings = MutoLocalizations.of(context);
     final price = editor.draft.price;
     final currency = price?.currency ?? Currency.kzt;
-    final errorText = issueMessage(
-      issues.firstFor(ListingField.price),
-      strings,
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -885,6 +1020,7 @@ class _PriceField extends StatelessWidget {
               child: AppTextField(
                 label: strings.editorFieldPrice,
                 controller: field,
+                focusNode: focus.nodeFor(_Field.price),
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.next,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -917,10 +1053,6 @@ class _PriceField extends StatelessWidget {
             ),
           ],
         ),
-        if (errorText != null) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(errorText, style: AppTextStyles.error),
-        ],
       ],
     );
   }
@@ -940,7 +1072,7 @@ class _CurrencyToggle extends StatelessWidget {
         for (final currency in Currency.values)
           Padding(
             padding: const EdgeInsets.only(left: AppSpacing.xs),
-            child: _Choice(
+            child: SelectableChip(
               label: currency.code,
               selected: currency == selected,
               onTap: () => onSelected(currency),
@@ -1076,17 +1208,34 @@ class _Thumbnail extends StatelessWidget {
             child: ListingImage(provider: provider),
           ),
         ),
+        // tucked into the corner itself rather than centred in an IconButton's
+        // 48pt box, which pushed it a third of the way across the thumbnail.
+        // its own dark disc keeps it legible over whatever the photo is
         Positioned(
-          top: 0,
-          right: 0,
+          top: AppSpacing.xs,
+          right: AppSpacing.xs,
           child: Semantics(
             label: removeLabel,
             button: true,
             excludeSemantics: true,
-            child: IconButton(
-              icon: const AppIcon(AppIcons.close, size: 16),
-              tooltip: removeLabel,
-              onPressed: onRemove,
+            child: Tooltip(
+              message: removeLabel,
+              child: Material(
+                color: AppColors.black.withValues(alpha: 0.55),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: onRemove,
+                  child: const Padding(
+                    padding: EdgeInsets.all(AppSpacing.xs),
+                    child: AppIcon(
+                      AppIcons.close,
+                      size: 14,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -1102,6 +1251,7 @@ class _Choices<T> extends StatelessWidget {
     required this.selected,
     required this.labelOf,
     required this.onSelected,
+    this.fullWidth = false,
   });
 
   final String title;
@@ -1109,6 +1259,7 @@ class _Choices<T> extends StatelessWidget {
   final T selected;
   final String Function(T) labelOf;
   final ValueChanged<T> onSelected;
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -1122,25 +1273,87 @@ class _Choices<T> extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final value in values)
-              _Choice(
-                label: labelOf(value),
-                selected: value == selected,
-                onTap: () => onSelected(value),
+        if (fullWidth)
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: AppColors.borderGrey.withValues(alpha: 0.55),
               ),
-          ],
-        ),
+              borderRadius: AppSpacing.borderRadiusMd,
+            ),
+            padding: const EdgeInsets.all(AppSpacing.xs),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final selectedIndex = values.indexOf(selected);
+                final segmentWidth =
+                    (constraints.maxWidth -
+                        AppSpacing.xs * (values.length - 1)) /
+                    values.length;
+                return Stack(
+                  children: [
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 340),
+                      curve: Curves.easeInOutCubic,
+                      left: selectedIndex * (segmentWidth + AppSpacing.xs),
+                      width: segmentWidth,
+                      top: 0,
+                      bottom: 0,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).brightness == Brightness.light
+                              ? AppColors.white
+                              : AppColors.black,
+                          borderRadius: AppSpacing.borderRadiusSm,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withValues(alpha: 0.08),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        for (var i = 0; i < values.length; i++) ...[
+                          if (i > 0) const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: _EditorChoice(
+                              label: labelOf(values[i]),
+                              selected: values[i] == selected,
+                              onTap: () => onSelected(values[i]),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          )
+        else
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final value in values)
+                SelectableChip(
+                  label: labelOf(value),
+                  selected: value == selected,
+                  onTap: () => onSelected(value),
+                ),
+            ],
+          ),
       ],
     );
   }
 }
 
-class _Choice extends StatelessWidget {
-  const _Choice({
+class _EditorChoice extends StatelessWidget {
+  const _EditorChoice({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -1153,33 +1366,36 @@ class _Choice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final background = selected
-        ? (isLight ? AppColors.primaryLight : AppColors.primaryLightDark)
-        : (isLight ? AppColors.serviceBackground : AppColors.borderDark);
-    final foreground = selected
-        ? (isLight ? AppColors.primary : AppColors.primaryAccentDark)
-        : AppColors.textSecondary;
-
     return Semantics(
       selected: selected,
       button: true,
       child: InkWell(
         onTap: onTap,
         borderRadius: AppSpacing.borderRadiusSm,
+        splashColor: AppColors.transparent,
+        highlightColor: AppColors.transparent,
+        hoverColor: AppColors.transparent,
+        focusColor: AppColors.transparent,
         child: AnimatedContainer(
-          duration: _duration,
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeInOutCubic,
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: background,
+            color: AppColors.transparent,
             borderRadius: AppSpacing.borderRadiusSm,
           ),
-          child: Text(
-            label,
-            style: AppTextStyles.chip.copyWith(color: foreground),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 320),
+            curve: Curves.easeInOutCubic,
+            style: AppTextStyles.chip.copyWith(
+              color: selected
+                  ? (isLight ? AppColors.primary : AppColors.primaryAccentDark)
+                  : AppColors.textSecondary,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
       ),
@@ -1189,3 +1405,7 @@ class _Choice extends StatelessWidget {
 
 /// Long enough to read as movement, short enough not to be waited on.
 const Duration _duration = Duration(milliseconds: 240);
+
+/// Long enough for a tick to register, short enough that it never feels like
+/// waiting for the sheet to close.
+const Duration _confirmationHold = Duration(milliseconds: 650);

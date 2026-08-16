@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +14,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 late SampleData _data;
 
-Future<void> _pump(WidgetTester tester, {SampleData? data}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  SampleData? data,
+  MockLatency latency = const MockLatency.none(),
+}) async {
   tester.view.physicalSize = const Size(1200, 2400);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -29,10 +34,7 @@ Future<void> _pump(WidgetTester tester, {SampleData? data}) async {
       ],
       home: MutoFeature(
         session: const MutoHostSession(accessToken: 'test-session'),
-        dependencies: buildSampleDependencies(
-          data ?? _data,
-          latency: const MockLatency.none(),
-        ),
+        dependencies: buildSampleDependencies(data ?? _data, latency: latency),
         config: const MutoConfig.sample(),
       ),
     ),
@@ -42,12 +44,6 @@ Future<void> _pump(WidgetTester tester, {SampleData? data}) async {
 
 Future<void> _openTab(WidgetTester tester, String label) async {
   await tester.tap(find.bySemanticsLabel(label).last);
-  await tester.pumpAndSettle();
-}
-
-Future<void> _settleToast(WidgetTester tester) async {
-  await tester.pumpAndSettle();
-  await tester.pump(const Duration(seconds: 5));
   await tester.pumpAndSettle();
 }
 
@@ -141,6 +137,16 @@ void main() {
       expect(find.bySemanticsLabel('Save listing'), findsNothing);
       handle.dispose();
     });
+
+    testWidgets('does not show seller info above your listings', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await _openTab(tester, 'My listings');
+
+      expect(find.text('Aruzhan'), findsNothing);
+      expect(find.text('Your contact info'), findsNothing);
+    });
   });
 
   group('owner actions', () {
@@ -153,12 +159,15 @@ void main() {
       await tester.pumpAndSettle();
 
       // an active listing can be reserved, sold, hidden or removed
-      expect(find.text('Your listing'), findsOneWidget);
-      expect(find.text('Mark as reserved'), findsOneWidget);
-      expect(find.text('Mark as sold'), findsOneWidget);
+      // the bar captions each action in a word; the sentence stays as the
+      // label a screen reader reads out
+      expect(find.text('Reserve'), findsOneWidget);
+      expect(find.text('Sold'), findsOneWidget);
       expect(find.text('Hide'), findsOneWidget);
-      expect(find.text('Remove listing'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
       expect(find.text('Edit'), findsOneWidget);
+      expect(find.bySemanticsLabel('Mark as reserved'), findsOneWidget);
+      expect(find.bySemanticsLabel('Remove listing'), findsOneWidget);
       handle.dispose();
     });
 
@@ -178,8 +187,8 @@ void main() {
       await tester.tap(find.text(sold.title));
       await tester.pumpAndSettle();
 
-      expect(find.text('Make available again'), findsOneWidget);
-      expect(find.text('Mark as reserved'), findsNothing);
+      expect(find.text('Relist'), findsOneWidget);
+      expect(find.text('Reserve'), findsNothing);
       expect(
         find.text('Edit'),
         findsNothing,
@@ -204,8 +213,9 @@ void main() {
       await tester.tap(find.text(sold.title));
       await tester.pumpAndSettle();
 
-      expect(find.text('This item has been sold.'), findsOneWidget);
-      expect(find.text('Contact seller'), findsNothing);
+      // worded for the person looking at it, who is the seller here
+      expect(find.textContaining('Sold ('), findsOneWidget);
+      expect(find.text('Telegram'), findsNothing);
       handle.dispose();
     });
 
@@ -217,11 +227,111 @@ void main() {
       await tester.tap(find.text('University Physics, volume 1'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Mark as reserved'));
-      await _settleToast(tester);
+      await tester.tap(find.text('Reserve'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
 
-      expect(find.text('Reserved'), findsWidgets);
+      // no toast, and the button that was pressed is still under the finger
+      // wearing its tick rather than having been retired mid-animation
+      expect(find.text('Listing updated'), findsNothing);
+      expect(find.text('Reserve'), findsOneWidget);
+
+      // only once the tick has been seen does the bar rebuild
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // the owner is left looking at the listing, not dropped back on the list
+      expect(find.text('University Physics, volume 1'), findsWidgets);
+
+      // repainted around the new status, in the owner's own terms
+      expect(find.textContaining('Reserved ('), findsOneWidget);
+      expect(
+        find.text('This item is reserved for someone else.'),
+        findsNothing,
+      );
+
+      // and what was reserved can now only be relisted or sold
+      expect(find.text('Reserve'), findsNothing);
+      expect(find.text('Relist'), findsOneWidget);
       handle.dispose();
+    });
+
+    testWidgets('reserving sweeps the clock hand round', (tester) async {
+      await _pump(tester);
+      await _openTab(tester, 'My listings');
+
+      await tester.tap(find.text('University Physics, volume 1'));
+      await tester.pumpAndSettle();
+
+      // the hour faces are only ever on screen mid-sweep; at rest the button
+      // wears the plain clock
+      AppIconData? sweepFrame() {
+        for (final icon in tester.widgetList<AppIcon>(find.byType(AppIcon))) {
+          if (AppIcons.clockHours.contains(icon.icon)) return icon.icon;
+        }
+        return null;
+      }
+
+      expect(sweepFrame(), isNull);
+
+      await tester.tap(find.text('Reserve'));
+      // one frame for the write to land and the ticker to start, then the
+      // sweep is running
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+
+      await tester.pump(const Duration(milliseconds: 60));
+      final early = sweepFrame();
+      expect(early, isNotNull, reason: 'the hand should be going round');
+
+      await tester.pump(const Duration(milliseconds: 180));
+      expect(
+        sweepFrame(),
+        isNot(early),
+        reason: 'and should have moved on to another hour',
+      );
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('the icon starts moving on the press, not on the answer', (
+      tester,
+    ) async {
+      // a write slow enough that the two are tellable apart
+      await _pump(
+        tester,
+        latency: const MockLatency(
+          read: Duration.zero,
+          write: Duration(milliseconds: 400),
+        ),
+      );
+      await _openTab(tester, 'My listings');
+
+      await tester.tap(find.text('University Physics, volume 1'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Reserve'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // the write has not come back yet — the listing still reads as active —
+      // and the hand is already going round
+      expect(find.text('You marked this as reserved.'), findsNothing);
+      expect(
+        AppIcons.clockHours.any(
+          (face) => tester
+              .widgetList<AppIcon>(find.byType(AppIcon))
+              .any((widget) => widget.icon == face),
+        ),
+        isTrue,
+        reason: 'the motion should not wait for the round trip',
+      );
+
+      // and once both the write and the motion are done, the screen catches up
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 700));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Reserved ('), findsOneWidget);
     });
 
     testWidgets('removing asks first and cannot be done by accident', (
@@ -234,15 +344,17 @@ void main() {
       await tester.tap(find.text('University Physics, volume 1'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Remove listing'));
+      await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
 
       expect(find.text('Remove this listing?'), findsOneWidget);
+      // it rises from the bottom like every other question this app asks,
+      // rather than dropping into the middle of the screen
+      expect(find.byType(AlertDialog), findsNothing);
 
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Your listing'), findsOneWidget);
       handle.dispose();
     });
   });

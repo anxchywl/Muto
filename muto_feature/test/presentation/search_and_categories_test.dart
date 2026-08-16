@@ -96,7 +96,7 @@ void main() {
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Small study lamp, clip-on'), findsNothing);
+      expect(find.text('Recent searches'), findsNothing);
       expect(
         find.text('Calculus: Early Transcendentals, 8th edition'),
         findsOneWidget,
@@ -110,7 +110,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Textbooks'));
       await tester.pumpAndSettle();
-      expect(find.text('Small study lamp, clip-on'), findsNothing);
+      expect(find.text('Recent searches'), findsNothing);
 
       // the pill now says Textbooks; opening it and choosing the same value
       // is what clears the filter
@@ -158,7 +158,9 @@ void main() {
   });
 
   group('search', () {
-    testWidgets('suggests terms from what is actually listed', (tester) async {
+    testWidgets('does not show autocomplete suggestions while typing', (
+      tester,
+    ) async {
       await _pump(tester);
 
       await _openSearch(tester);
@@ -167,7 +169,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(find.text('lamp'), findsWidgets);
+      expect(find.text('Recent searches'), findsNothing);
     });
 
     testWidgets('keeps a term once it has been searched for', (tester) async {

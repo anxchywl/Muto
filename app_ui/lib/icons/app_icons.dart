@@ -1,4 +1,5 @@
 import 'package:lucide_flutter/lucide_flutter.dart';
+import 'package:simple_icons/simple_icons.dart';
 
 import '../icons/app_icon_data.dart';
 
@@ -58,6 +59,12 @@ abstract class AppIcons {
   /// Hub tab — service grid (SF: square.grid.2x2).
   static const AppIconData hub = MaterialIcon(LucideIcons.layoutGrid);
 
+  /// A feed laid out as full-width rows (SF: rectangle.grid.1x2).
+  static const AppIconData layoutRows = MaterialIcon(LucideIcons.rows3);
+
+  /// A feed laid out as a grid of tiles (SF: square.grid.2x2).
+  static const AppIconData layoutGrid = MaterialIcon(LucideIcons.layoutGrid);
+
   static const AppIconData chevronRight = MaterialIcon(LucideIcons.chevronRight);
   static const AppIconData chevronLeft  = MaterialIcon(LucideIcons.chevronLeft);
   static const AppIconData chevronUp    = MaterialIcon(LucideIcons.chevronUp);
@@ -109,6 +116,10 @@ abstract class AppIcons {
 
   static const AppIconData visibility    = MaterialIcon(LucideIcons.eye);
   static const AppIconData visibilityOff = MaterialIcon(LucideIcons.eyeOff);
+
+  /// The shut eye between [visibility] and [visibilityOff]. Together the three
+  /// are the frames of an eye closing.
+  static const AppIconData visibilityClosing = MaterialIcon(LucideIcons.eyeClosed);
 
   // ─────────────────────────────────────────────────────────────────────────
   // PROFILE & USER  (SF: person.circle · person · person.2 · camera)
@@ -238,15 +249,19 @@ abstract class AppIcons {
   static const AppIconData heartPulse = MaterialIcon(LucideIcons.heartPulse);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // SOCIAL MEDIA  (Lucide semantic equivalents, rendered with brand colours)
-  // No brand SVGs — use tinted Lucide icons with SocialPlatform.color
+  // SOCIAL MEDIA
   // ─────────────────────────────────────────────────────────────────────────
 
   static const AppIconData instagram = MaterialIcon(LucideIcons.camera);
-  static const AppIconData whatsapp  = MaterialIcon(LucideIcons.messageCircle);
   static const AppIconData twitter   = MaterialIcon(LucideIcons.send);
   static const AppIconData facebook  = MaterialIcon(LucideIcons.users);
-  static const AppIconData telegram  = MaterialIcon(LucideIcons.send);
+
+  /// The real marks rather than generic stand-ins — a contact button is one
+  /// of the few places a brand's own shape is the point, since it is what
+  /// tells a reader which app opens before they tap. Paired with
+  /// [AppColors.socialTelegram] and [AppColors.socialWhatsapp].
+  static const AppIconData telegram = MaterialIcon(SimpleIcons.telegram);
+  static const AppIconData whatsapp = MaterialIcon(SimpleIcons.whatsapp);
 
   // ─────────────────────────────────────────────────────────────────────────
   // SETTINGS & SECURITY  (SF: gearshape · shield.checkmark · lock · globe)
@@ -339,6 +354,23 @@ abstract class AppIcons {
   static const AppIconData calendarMonth = MaterialIcon(LucideIcons.calendarDays);
   static const AppIconData history      = MaterialIcon(LucideIcons.history);
   static const AppIconData time         = MaterialIcon(LucideIcons.clock);
+
+  /// One clock face per hour, twelve o'clock first. Stepped through in order
+  /// they are the frames of a hand going round.
+  static const List<AppIconData> clockHours = [
+    MaterialIcon(LucideIcons.clock12),
+    MaterialIcon(LucideIcons.clock1),
+    MaterialIcon(LucideIcons.clock2),
+    MaterialIcon(LucideIcons.clock3),
+    MaterialIcon(LucideIcons.clock4),
+    MaterialIcon(LucideIcons.clock5),
+    MaterialIcon(LucideIcons.clock6),
+    MaterialIcon(LucideIcons.clock7),
+    MaterialIcon(LucideIcons.clock8),
+    MaterialIcon(LucideIcons.clock9),
+    MaterialIcon(LucideIcons.clock10),
+    MaterialIcon(LucideIcons.clock11),
+  ];
 
   // ─────────────────────────────────────────────────────────────────────────
   // LOCATION  (SF: mappin.and.ellipse)

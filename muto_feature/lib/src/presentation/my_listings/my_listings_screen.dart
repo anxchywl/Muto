@@ -30,7 +30,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
         key: CacheKeys.mine(null),
         loader: (cursor) => scope.dependencies.listings.mine(cursor: cursor),
       );
-      unawaited(scope.mine.load(force: true));
+      unawaited(scope.mine.load());
     });
   }
 
@@ -42,7 +42,6 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
       strings,
       Localizations.localeOf(context).toString(),
     );
-
     return Scaffold(
       appBar: AppBar(centerTitle: true, title: Text(strings.navMyListings)),
       body: ListenableBuilder(

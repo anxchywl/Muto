@@ -8,12 +8,16 @@ import '../../application/cache/cache_keys.dart';
 import '../../application/listing_feed_controller.dart';
 import '../../application/muto_scope.dart';
 import '../../domain/entities/listing.dart';
+import '../../domain/entities/seller_contact.dart';
 import '../../domain/entities/seller_profile.dart';
 import '../../domain/failures.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
+import '../listing/contact_channels.dart';
 import '../listing/listing_detail_screen.dart';
+import '../shared/contact_buttons.dart';
 import '../shared/listing_feed_view.dart';
+import '../shared/monogram.dart';
 
 /// Who is selling, and what else they have.
 ///
@@ -25,6 +29,7 @@ class SellerProfileScreen extends StatefulWidget {
     super.key,
     required this.sellerId,
     required this.sellerDisplayName,
+    this.contact,
   });
 
   final String sellerId;
@@ -32,6 +37,15 @@ class SellerProfileScreen extends StatefulWidget {
   /// Known from the listing that opened this screen, so the header has a name
   /// before the profile arrives.
   final String sellerDisplayName;
+
+  /// Carried in from that same listing.
+  ///
+  /// The profile a server returns says who someone is and what they have, not
+  /// how to reach them — contact details live on the listing, where they are
+  /// gated on the reader being a verified student. Passing them in keeps that
+  /// gate exactly where it already is rather than opening a second way to the
+  /// same handles.
+  final SellerContact? contact;
 
   @override
   State<SellerProfileScreen> createState() => _SellerProfileScreenState();
@@ -104,8 +118,10 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
     final feed = _feed;
     final profile = _profile;
 
+    // the seller's own name is the first thing in the page; repeating it in
+    // the bar says nothing and leaves the bar unable to say what the page is
     return Scaffold(
-      appBar: AppBar(title: Text(widget.sellerDisplayName)),
+      appBar: AppBar(title: Text(strings.sellerProfileTitle)),
       body: Column(
         children: [
           _Header(
@@ -113,6 +129,7 @@ class _SellerProfileScreenState extends State<SellerProfileScreen> {
             profile: profile,
             failed: _failure != null,
             labels: labels,
+            contact: widget.contact,
           ),
           Expanded(
             child: feed == null
@@ -141,12 +158,14 @@ class _Header extends StatelessWidget {
     required this.profile,
     required this.failed,
     required this.labels,
+    required this.contact,
   });
 
   final String displayName;
   final SellerProfile? profile;
   final bool failed;
   final ListingLabels labels;
+  final SellerContact? contact;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +185,14 @@ class _Header extends StatelessWidget {
       (null, false) => null,
     };
 
+    // the same gate the listing uses: an unverified reader is told why rather
+    // than shown an empty space where the handles would be
+    final isVerified =
+        MutoScope.of(context).session.identity?.isVerified ?? false;
+    final channels = isVerified
+        ? contactChannelsOf(contact)
+        : const <ContactChannel>[];
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.df,
@@ -173,73 +200,65 @@ class _Header extends StatelessWidget {
         AppSpacing.df,
         AppSpacing.sm,
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Monogram(name: displayName, isLight: isLight),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTextStyles.titleMedium.copyWith(
-                    color: isLight
-                        ? AppColors.textPrimary
-                        : AppColors.textPrimaryDark,
-                  ),
-                ),
-                if (detail != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    detail,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Monogram(name: displayName, isLight: isLight),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.titleMedium.copyWith(
+                        color: isLight
+                            ? AppColors.textPrimary
+                            : AppColors.textPrimaryDark,
+                      ),
                     ),
-                  ),
-                ],
-              ],
+                    if (detail != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        detail,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (channels.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              strings.sellerContactTitle,
+              style: AppTextStyles.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
-          ),
+            const SizedBox(height: AppSpacing.sm),
+            // text rows rather than the listing's buttons: this page is a
+            // list of facts about someone, and one tap still copies the
+            // handle and opens the chat
+            ContactChannelList(channels: channels, strings: strings),
+          ] else if (!isVerified) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              strings.contactUnavailableUnverified,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ],
-      ),
-    );
-  }
-}
-
-/// A first letter rather than a photo. There are no avatars in this build, and
-/// an empty circle says less than an initial does.
-class _Monogram extends StatelessWidget {
-  const _Monogram({required this.name, required this.isLight});
-
-  final String name;
-  final bool isLight;
-
-  @override
-  Widget build(BuildContext context) {
-    final trimmed = name.trim();
-    final initial = trimmed.isEmpty
-        ? ''
-        : String.fromCharCode(trimmed.runes.first).toUpperCase();
-
-    return Container(
-      width: 48,
-      height: 48,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isLight ? AppColors.primaryLight : AppColors.primaryLightDark,
-      ),
-      child: ExcludeSemantics(
-        child: Text(
-          initial,
-          style: AppTextStyles.titleMedium.copyWith(
-            color: isLight ? AppColors.primary : AppColors.primaryAccentDark,
-          ),
-        ),
       ),
     );
   }

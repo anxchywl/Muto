@@ -17,6 +17,7 @@ class FeedSearchField extends StatelessWidget {
     required this.onClose,
     required this.clearLabel,
     required this.closeLabel,
+    this.showLeadingIcon = true,
     this.maxLength = 80,
   });
 
@@ -31,6 +32,7 @@ class FeedSearchField extends StatelessWidget {
   /// text and another when there is not.
   final String clearLabel;
   final String closeLabel;
+  final bool showLeadingIcon;
 
   final int maxLength;
 
@@ -48,7 +50,10 @@ class FeedSearchField extends StatelessWidget {
       onTap: focusNode.requestFocus,
       child: Container(
         height: height,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        padding: EdgeInsets.only(
+          left: showLeadingIcon ? AppSpacing.sm : AppSpacing.xxxl,
+          right: AppSpacing.md,
+        ),
         decoration: BoxDecoration(
           color: (isLight ? AppColors.surface : AppColors.surfaceDark)
               .withValues(alpha: 0.92),
@@ -57,75 +62,97 @@ class FeedSearchField extends StatelessWidget {
             color: isLight ? AppColors.borderGrey : AppColors.borderDark,
           ),
         ),
-        child: Row(
-          children: [
-            AppIcon(AppIcons.search, size: 18, color: AppColors.textSecondary),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: TextField(
-                controller: controller,
-                focusNode: focusNode,
-                maxLength: maxLength,
-                scrollPadding: EdgeInsets.zero,
-                textInputAction: TextInputAction.search,
-                onChanged: onChanged,
-                onSubmitted: onSubmitted,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: foreground,
-                ),
-                decoration: InputDecoration(
-                  filled: false,
-                  hintText: hint,
-                  hintStyle: AppTextStyles.bodyMedium.copyWith(
-                    fontWeight: FontWeight.w500,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < 120) {
+              return showLeadingIcon
+                  ? const Center(
+                      child: AppIcon(
+                        AppIcons.search,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
+                  : const SizedBox.shrink();
+            }
+
+            return Row(
+              children: [
+                if (showLeadingIcon) ...[
+                  AppIcon(
+                    AppIcons.search,
+                    size: 18,
                     color: AppColors.textSecondary,
                   ),
-                  border: InputBorder.none,
-                  isDense: true,
-                  contentPadding: EdgeInsets.zero,
-                  counterText: '',
-                ),
-              ),
-            ),
-            ValueListenableBuilder<TextEditingValue>(
-              valueListenable: controller,
-              builder: (context, value, _) {
-                final hasText = value.text.isNotEmpty;
-                return Semantics(
-                  label: hasText ? clearLabel : closeLabel,
-                  button: true,
-                  excludeSemantics: true,
-                  child: Tooltip(
-                    message: hasText ? clearLabel : closeLabel,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (!hasText) {
-                          focusNode.unfocus();
-                          onClose();
-                          return;
-                        }
-                        controller.clear();
-                        onChanged('');
-                        focusNode.requestFocus();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xs,
-                          vertical: AppSpacing.sm,
-                        ),
-                        child: AppIcon(
-                          AppIcons.close,
-                          size: 18,
-                          color: AppColors.textSecondary,
-                        ),
+                  const SizedBox(width: AppSpacing.sm),
+                ],
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    maxLength: maxLength,
+                    scrollPadding: EdgeInsets.zero,
+                    textInputAction: TextInputAction.search,
+                    onChanged: onChanged,
+                    onSubmitted: onSubmitted,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: foreground,
+                    ),
+                    decoration: InputDecoration(
+                      filled: false,
+                      hintText: hint,
+                      hintStyle: AppTextStyles.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
                       ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                      counterText: '',
                     ),
                   ),
-                );
-              },
-            ),
-          ],
+                ),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: controller,
+                  builder: (context, value, _) {
+                    final hasText = value.text.isNotEmpty;
+                    return Semantics(
+                      label: hasText ? clearLabel : closeLabel,
+                      button: true,
+                      excludeSemantics: true,
+                      child: Tooltip(
+                        message: hasText ? clearLabel : closeLabel,
+                        child: GestureDetector(
+                          onTap: () {
+                            if (!hasText) {
+                              focusNode.unfocus();
+                              onClose();
+                              return;
+                            }
+                            controller.clear();
+                            onChanged('');
+                            focusNode.requestFocus();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                              vertical: AppSpacing.sm,
+                            ),
+                            child: AppIcon(
+                              AppIcons.close,
+                              size: 18,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

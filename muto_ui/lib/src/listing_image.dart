@@ -22,16 +22,29 @@ class ListingImage extends StatelessWidget {
     final image = provider;
     if (image == null) return _Placeholder(semanticLabel: semanticLabel);
 
-    return Image(
-      image: image,
-      fit: fit,
-      semanticLabel: semanticLabel,
-      excludeFromSemantics: semanticLabel == null,
-      errorBuilder: (_, _, _) => _Placeholder(semanticLabel: semanticLabel),
-      frameBuilder: (_, child, frame, wasSynchronous) {
-        if (wasSynchronous || frame != null) return child;
-        return _Placeholder(semanticLabel: semanticLabel);
-      },
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _Placeholder(semanticLabel: semanticLabel),
+        Image(
+          image: image,
+          fit: fit,
+          semanticLabel: semanticLabel,
+          excludeFromSemantics: semanticLabel == null,
+          errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          frameBuilder: (_, child, frame, wasSynchronous) {
+            final visible = wasSynchronous || frame != null;
+            return AnimatedOpacity(
+              opacity: visible ? 1 : 0,
+              duration: visible
+                  ? const Duration(milliseconds: 120)
+                  : Duration.zero,
+              curve: Curves.easeOut,
+              child: child,
+            );
+          },
+        ),
+      ],
     );
   }
 }

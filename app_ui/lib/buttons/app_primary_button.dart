@@ -5,7 +5,7 @@ import '../tokens/app_text_styles.dart';
 
 /// Primary button with filled background.
 /// Use for main call-to-action buttons.
-/// 
+///
 /// Example:
 /// ```dart
 /// AppPrimaryButton(
@@ -24,6 +24,7 @@ class AppPrimaryButton extends StatefulWidget {
     this.width,
     this.height,
     this.size = AppButtonSize.large,
+    this.backgroundColor,
   });
 
   /// Button label text.
@@ -50,6 +51,11 @@ class AppPrimaryButton extends StatefulWidget {
   /// Button size variant.
   final AppButtonSize size;
 
+  /// Fill colour, for the cases where the primary action is not the brand
+  /// action — a destructive confirmation, most often. Defaults to
+  /// [AppColors.primary].
+  final Color? backgroundColor;
+
   double get _height => height ?? size.height;
 
   @override
@@ -61,7 +67,9 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveOnPressed = widget.isEnabled && !widget.isLoading ? widget.onPressed : null;
+    final effectiveOnPressed = widget.isEnabled && !widget.isLoading
+        ? widget.onPressed
+        : null;
 
     return Listener(
       onPointerDown: (_) {
@@ -79,9 +87,12 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
           child: ElevatedButton(
             onPressed: effectiveOnPressed,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: widget.backgroundColor ?? AppColors.primary,
               foregroundColor: AppColors.white,
-              disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+              disabledBackgroundColor:
+                  (widget.backgroundColor ?? AppColors.primary).withValues(
+                    alpha: 0.5,
+                  ),
               disabledForegroundColor: AppColors.white.withValues(alpha: 0.7),
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -112,10 +123,7 @@ class _AppPrimaryButtonState extends State<AppPrimaryButton> {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.icon != null) ...[
-          widget.icon!,
-          AppSpacing.horizontalSm,
-        ],
+        if (widget.icon != null) ...[widget.icon!, AppSpacing.horizontalSm],
         Flexible(
           child: Text(
             widget.text,

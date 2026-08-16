@@ -162,6 +162,22 @@ final class ListingLabels {
     }
   }
 
+  String cardPrice(Listing listing) {
+    return price(listing);
+  }
+
+  String detailPrice(Listing listing) {
+    final amount = price(listing);
+    return switch (listing.status) {
+      ListingStatus.reserved => '${strings.statusReserved} ($amount)',
+      ListingStatus.sold => '${strings.statusSold} ($amount)',
+      _ => amount,
+    };
+  }
+
+  String postedDate(DateTime moment) =>
+      DateFormat('dd.MM.yyyy').format(moment.toLocal());
+
   /// One announcement per row, so a screen reader does not read a card as four
   /// unrelated fragments.
   String listingSemantics(Listing listing) {

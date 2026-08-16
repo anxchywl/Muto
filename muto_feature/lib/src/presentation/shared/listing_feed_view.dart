@@ -11,6 +11,7 @@ import '../../domain/failures.dart';
 import '../../l10n/generated/muto_localizations.dart';
 import '../formatting/listing_labels.dart';
 import '../images/listing_image_provider.dart';
+import 'feed_layout.dart';
 
 /// One paginated list of listings, with every state it can be in.
 ///
@@ -26,7 +27,10 @@ class ListingFeedView extends StatefulWidget {
     required this.emptyIcon,
     this.emptyMessage,
     this.showFavoriteToggle = true,
+    this.itemFilter,
+    this.extraItems = const [],
     this.reservesComposeButton = false,
+    this.layout = FeedLayout.rows,
     this.header,
   });
 
@@ -40,6 +44,11 @@ class ListingFeedView extends StatefulWidget {
   final String? emptyMessage;
   final AppIconData emptyIcon;
   final bool showFavoriteToggle;
+  final bool Function(Listing listing)? itemFilter;
+  final List<Listing> extraItems;
+
+  /// Rows or tiles. The reader's choice, held by whoever owns this feed.
+  final FeedLayout layout;
 
   /// Sits above the cards as the list's own first item, so it scrolls with
   /// them rather than floating apart from what it is searching and filtering.
@@ -55,6 +64,7 @@ class ListingFeedView extends StatefulWidget {
 
 class _ListingFeedViewState extends State<ListingFeedView> {
   final ScrollController _scroll = ScrollController();
+  double _savedOffset = 0;
 
   @override
   void initState() {
@@ -72,6 +82,7 @@ class _ListingFeedViewState extends State<ListingFeedView> {
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
+    _savedOffset = _scroll.offset;
     final remaining =
         _scroll.position.maxScrollExtent - _scroll.position.pixels;
     if (remaining < 400) unawaited(widget.feed.loadMore());
@@ -83,8 +94,14 @@ class _ListingFeedViewState extends State<ListingFeedView> {
     final feed = widget.feed;
     final labels = widget.labels;
     final strings = labels.strings;
+    final items = <Listing>[];
+    final seen = <String>{};
+    for (final listing in [...feed.items, ...widget.extraItems]) {
+      if (widget.itemFilter != null && !widget.itemFilter!(listing)) continue;
+      if (seen.add(listing.id)) items.add(listing);
+    }
 
-    if (!feed.hasLoaded && feed.failure != null) {
+    if (!feed.hasLoaded && feed.failure != null && items.isEmpty) {
       return _withStaticHeader(
         StateMessage(
           icon: AppIcons.alertCircle,
@@ -97,9 +114,11 @@ class _ListingFeedViewState extends State<ListingFeedView> {
     }
 
     // nothing has arrived yet, which is not the same as nothing matching
-    if (!feed.hasLoaded) return _withStaticHeader(const ListingSkeleton());
+    if (!feed.hasLoaded && items.isEmpty) {
+      return _withStaticHeader(const ListingSkeleton());
+    }
 
-    if (feed.items.isEmpty) {
+    if (items.isEmpty) {
       return _withStaticHeader(
         StateMessage(
           icon: widget.emptyIcon,
@@ -109,13 +128,57 @@ class _ListingFeedViewState extends State<ListingFeedView> {
       );
     }
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients || _savedOffset == 0) return;
+      final target = _savedOffset.clamp(
+        _scroll.position.minScrollExtent,
+        _scroll.position.maxScrollExtent,
+      );
+      if ((_scroll.offset - target).abs() > 0.5) _scroll.jumpTo(target);
+    });
+
     final header = widget.header;
-    // the header rides in the list itself, as row zero, rather than sitting
-    // outside it — so it scrolls with the cards instead of apart from them
-    final itemCount =
-        (header == null ? 0 : 1) +
-        feed.items.length +
-        (feed.isLoadingMore ? 1 : 0);
+    final isGrid = widget.layout == FeedLayout.grid;
+
+    Widget tileFor(Listing listing) {
+      final isOwner = scope.session.identity?.userId == listing.sellerId;
+      final trailing = widget.showFavoriteToggle && !isOwner
+          ? _FavoriteButton(listing: listing)
+          : null;
+      final image = resolveListingImage(
+        scope.dependencies.imageLocator,
+        listing.coverImage,
+      );
+      final imageSemantics = strings.listingImageSemantics(listing.title);
+
+      return isGrid
+          ? ListingGridTile(
+              title: listing.title,
+              priceText: labels.cardPrice(listing),
+              statusLabel: labels.status(listing.status),
+              semanticLabel: labels.listingSemantics(listing),
+              imageSemanticLabel: imageSemantics,
+              image: image,
+              trailing: trailing,
+              onTap: () => widget.onOpenListing(listing),
+            )
+          : ListingCard(
+              title: listing.title,
+              priceText: labels.cardPrice(listing),
+              statusLabel: labels.status(listing.status),
+              semanticLabel: labels.listingSemantics(listing),
+              imageSemanticLabel: imageSemantics,
+              image: image,
+              trailing: trailing,
+              onTap: () => widget.onOpenListing(listing),
+            );
+    }
+
+    // the last row has to clear the compose button where there is one, or the
+    // bottom of the feed is unreachable
+    final bottomInset = widget.reservesComposeButton
+        ? AppSpacing.xxxl + AppSpacing.xl
+        : AppSpacing.df;
 
     return RefreshIndicator(
       onRefresh: feed.refresh,
@@ -126,50 +189,66 @@ class _ListingFeedViewState extends State<ListingFeedView> {
               text: strings.staleDataNotice(labels.savedAt(feed.fetchedAt!)),
             ),
           Expanded(
-            child: ListView.separated(
+            // slivers rather than one list, because the header and the
+            // loading foot are single full-width rows either way while the
+            // listings between them are rows in one layout and a grid in the
+            // other — three sections that scroll as one
+            child: CustomScrollView(
+              key: PageStorageKey<ListingFeedController>(widget.feed),
               controller: _scroll,
-              // the last row has to clear the compose button where there is
-              // one, or the bottom of the feed is unreachable
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.df,
-                header == null ? AppSpacing.df : 0,
-                AppSpacing.df,
-                widget.reservesComposeButton
-                    ? AppSpacing.xxxl + AppSpacing.xl
-                    : AppSpacing.df,
-              ),
-              itemCount: itemCount,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
-              itemBuilder: (context, index) {
-                if (header != null && index == 0) return header;
-                final itemIndex = header == null ? index : index - 1;
-
-                if (itemIndex >= feed.items.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.df),
-                    child: Center(child: AppLoader()),
-                  );
-                }
-                final listing = feed.items[itemIndex];
-                return ListingCard(
-                  title: listing.title,
-                  priceText: labels.price(listing),
-                  metaLabel: labels.condition(listing.condition),
-                  statusLabel: labels.status(listing.status),
-                  semanticLabel: labels.listingSemantics(listing),
-                  imageSemanticLabel: strings.listingImageSemantics(
-                    listing.title,
+              slivers: [
+                // the header rides in the scroll itself rather than sitting
+                // outside it, so it moves with the cards instead of apart
+                if (header != null)
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.df,
+                    ),
+                    sliver: SliverToBoxAdapter(child: header),
                   ),
-                  image: resolveListingImage(
-                    scope.dependencies.imageLocator,
-                    listing.coverImage,
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    AppSpacing.df,
+                    header == null ? AppSpacing.df : 0,
+                    AppSpacing.df,
+                    feed.isLoadingMore ? 0 : bottomInset,
                   ),
-                  trailing: widget.showFavoriteToggle
-                      ? _FavoriteButton(listingId: listing.id)
-                      : null,
-                  onTap: () => widget.onOpenListing(listing),
-                );
-              },
+                  sliver: isGrid
+                      ? SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: AppSpacing.md,
+                                crossAxisSpacing: AppSpacing.md,
+                                // the photo is square and the block under it
+                                // is two lines of text plus its padding, which
+                                // is what this ratio reserves
+                                childAspectRatio: 0.66,
+                              ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => tileFor(items[index]),
+                            childCount: items.length,
+                          ),
+                        )
+                      : SliverList.separated(
+                          itemCount: items.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppSpacing.md),
+                          itemBuilder: (context, index) =>
+                              tileFor(items[index]),
+                        ),
+                ),
+                if (feed.isLoadingMore)
+                  SliverPadding(
+                    padding: EdgeInsets.only(
+                      top: AppSpacing.df,
+                      bottom: bottomInset,
+                    ),
+                    sliver: const SliverToBoxAdapter(
+                      child: Center(child: AppLoader()),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -195,9 +274,9 @@ class _ListingFeedViewState extends State<ListingFeedView> {
 }
 
 class _FavoriteButton extends StatelessWidget {
-  const _FavoriteButton({required this.listingId});
+  const _FavoriteButton({required this.listing});
 
-  final String listingId;
+  final Listing listing;
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +286,7 @@ class _FavoriteButton extends StatelessWidget {
     return ListenableBuilder(
       listenable: favorites,
       builder: (context, _) {
-        final saved = favorites.isSaved(listingId);
+        final saved = favorites.isSaved(listing.id);
         final label = saved
             ? strings.actionUnsaveListing
             : strings.actionSaveListing;
@@ -224,7 +303,8 @@ class _FavoriteButton extends StatelessWidget {
               size: 20,
               color: saved ? AppColors.error : AppColors.iconSecondary,
             ),
-            onPressed: () => unawaited(favorites.toggle(listingId)),
+            onPressed: () =>
+                unawaited(favorites.toggle(listing.id, listing: listing)),
           ),
         );
       },

@@ -239,7 +239,7 @@ class _AppTextFieldState extends State<AppTextField> {
         style: AppTextStyles.bodyLarge.copyWith(
           color: isLight ? AppColors.textPrimary : AppColors.textPrimaryDark,
         ),
-        keyboardType: widget.keyboardType,
+        keyboardType: widget.keyboardType ?? TextInputType.text,
         textInputAction: widget.textInputAction,
         onChanged: widget.onChanged,
         onFieldSubmitted: widget.onSubmitted,

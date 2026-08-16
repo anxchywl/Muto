@@ -33,9 +33,7 @@ class SearchPanel extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        final rows = hasText
-            ? _suggestionRows(context)
-            : _recentRows(context, isLight);
+        final rows = hasText ? const <Widget>[] : _recentRows(context, isLight);
         if (rows.isEmpty) return const SizedBox.shrink();
 
         return Material(
@@ -50,13 +48,6 @@ class SearchPanel extends StatelessWidget {
     );
   }
 
-  List<Widget> _suggestionRows(BuildContext context) {
-    return [
-      for (final term in controller.suggestions)
-        _TermRow(icon: AppIcons.search, label: term, onTap: () => onTerm(term)),
-    ];
-  }
-
   List<Widget> _recentRows(BuildContext context, bool isLight) {
     if (controller.recent.isEmpty) return const [];
 
@@ -64,7 +55,7 @@ class SearchPanel extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.df,
-          AppSpacing.md,
+          AppSpacing.sm,
           AppSpacing.sm,
           AppSpacing.xs,
         ),
@@ -126,7 +117,7 @@ class _TermRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.df,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.sm,
         ),
         child: Row(
           children: [

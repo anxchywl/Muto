@@ -98,6 +98,40 @@ void main() {
     expect(find.text('Free'), findsWidgets);
   });
 
+  testWidgets('swaps the feed between rows and tiles', (tester) async {
+    await _pumpFeature(tester, logicalSize: const Size(400, 800));
+
+    expect(find.byType(ListingCard), findsWidgets);
+    expect(find.byType(ListingGridTile), findsNothing);
+
+    // the layout pill sits at the end of the strip, past the filters — bring
+    // it on screen the way a reader's own swipe would
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(-400, 0),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsLabel('Show as a grid'));
+    await tester.pumpAndSettle();
+
+    // the same listings, drawn the other way — nothing was re-fetched
+    expect(find.byType(ListingGridTile), findsWidgets);
+    expect(find.byType(ListingCard), findsNothing);
+    expect(find.text('Small study lamp, clip-on'), findsOneWidget);
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(-400, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsLabel('Show as a list'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ListingCard), findsWidgets);
+    expect(find.byType(ListingGridTile), findsNothing);
+  });
+
   testWidgets('loads the next page when the feed is scrolled', (tester) async {
     // a phone-sized viewport, so the feed genuinely has somewhere to scroll
     await _pumpFeature(tester, logicalSize: const Size(400, 800));
@@ -109,7 +143,10 @@ void main() {
     );
 
     for (var i = 0; i < 6; i++) {
-      await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+      await tester.drag(
+        find.byType(CustomScrollView).last,
+        const Offset(0, -600),
+      );
       await tester.pumpAndSettle();
     }
 
