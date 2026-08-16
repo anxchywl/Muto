@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/listing.dart';
@@ -10,6 +12,11 @@ abstract final class CacheTtl {
   /// Past this age, a feed that cannot be refreshed says so rather than
   /// pretending to be current.
   static const Duration staleness = Duration(minutes: 10);
+}
+
+abstract final class CacheCapacity {
+  static const int feeds = 32;
+  static const int standaloneListings = 64;
 }
 
 final class _FeedState {
@@ -28,13 +35,20 @@ final class _FeedState {
 final class ListingCache extends ChangeNotifier {
   final Map<String, Listing> _listings = {};
   final Map<String, _FeedState> _feeds = {};
+  final LinkedHashSet<String> _standaloneListingIds = LinkedHashSet();
 
-  Listing? peek(String id) => _listings[id];
+  Listing? peek(String id) {
+    final listing = _listings[id];
+    if (listing != null && _standaloneListingIds.remove(id)) {
+      _standaloneListingIds.add(id);
+    }
+    return listing;
+  }
 
   /// Null when the feed has never loaded, which is what separates "empty" from
   /// "not yet known".
   List<Listing>? peekFeed(String key) {
-    final state = _feeds[key];
+    final state = _feed(key);
     if (state == null) return null;
     return [
       for (final id in state.ids)
@@ -42,20 +56,20 @@ final class ListingCache extends ChangeNotifier {
     ];
   }
 
-  DateTime? fetchedAt(String key) => _feeds[key]?.fetchedAt;
+  DateTime? fetchedAt(String key) => _feed(key)?.fetchedAt;
 
-  Cursor? nextCursor(String key) => _feeds[key]?.nextCursor;
+  Cursor? nextCursor(String key) => _feed(key)?.nextCursor;
 
-  bool hasMore(String key) => _feeds[key]?.nextCursor != null;
+  bool hasMore(String key) => _feed(key)?.nextCursor != null;
 
   bool isFresh(String key, [Duration ttl = CacheTtl.feed]) {
-    final state = _feeds[key];
+    final state = _feed(key);
     if (state == null) return false;
     return DateTime.now().difference(state.fetchedAt) < ttl;
   }
 
   bool isStale(String key) {
-    final state = _feeds[key];
+    final state = _feed(key);
     if (state == null) return false;
     return DateTime.now().difference(state.fetchedAt) >= CacheTtl.staleness;
   }
@@ -67,7 +81,7 @@ final class ListingCache extends ChangeNotifier {
       _listings[listing.id] = listing;
     }
 
-    final existing = _feeds[key];
+    final existing = _feed(key);
     if (replace || existing == null) {
       _feeds[key] = _FeedState(
         ids: page.items.map((listing) => listing.id).toList(),
@@ -82,12 +96,14 @@ final class ListingCache extends ChangeNotifier {
       existing.fetchedAt = DateTime.now();
       existing.nextCursor = page.nextCursor;
     }
+    _trimFeeds();
     notifyListeners();
   }
 
   /// Records a listing loaded on its own, without joining any feed.
   void absorb(Listing listing) {
     _listings[listing.id] = listing;
+    _retainStandalone(listing.id);
     notifyListeners();
   }
 
@@ -95,6 +111,7 @@ final class ListingCache extends ChangeNotifier {
   /// feed leaves it immediately rather than lingering until the next refresh.
   void patch(Listing listing) {
     _listings[listing.id] = listing;
+    _retainStandalone(listing.id);
     if (!listing.status.isVisibleInBrowse) {
       for (final entry in _feeds.entries) {
         if (entry.key.startsWith('browse:')) entry.value.ids.remove(listing.id);
@@ -111,6 +128,7 @@ final class ListingCache extends ChangeNotifier {
 
   void forget(String id) {
     _listings.remove(id);
+    _standaloneListingIds.remove(id);
     for (final state in _feeds.values) {
       state.ids.remove(id);
     }
@@ -119,16 +137,46 @@ final class ListingCache extends ChangeNotifier {
   }
 
   void markStale(String key) {
-    final state = _feeds[key];
+    final state = _feed(key);
     if (state != null) {
       state.fetchedAt = DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
 
   void _markAllStale() {
-    for (final key in _feeds.keys) {
+    for (final key in _feeds.keys.toList()) {
       markStale(key);
     }
+  }
+
+  _FeedState? _feed(String key) {
+    final state = _feeds.remove(key);
+    if (state != null) _feeds[key] = state;
+    return state;
+  }
+
+  void _trimFeeds() {
+    while (_feeds.length > CacheCapacity.feeds) {
+      _feeds.remove(_feeds.keys.first);
+    }
+    _removeUnreferencedListings();
+  }
+
+  void _retainStandalone(String id) {
+    _standaloneListingIds.remove(id);
+    _standaloneListingIds.add(id);
+    while (_standaloneListingIds.length > CacheCapacity.standaloneListings) {
+      _standaloneListingIds.remove(_standaloneListingIds.first);
+    }
+    _removeUnreferencedListings();
+  }
+
+  void _removeUnreferencedListings() {
+    final referenced = <String>{
+      ..._standaloneListingIds,
+      for (final state in _feeds.values) ...state.ids,
+    };
+    _listings.removeWhere((id, _) => !referenced.contains(id));
   }
 
   /// Drops everything. Called when the account changes, so nothing from one
@@ -136,6 +184,7 @@ final class ListingCache extends ChangeNotifier {
   void clear() {
     _listings.clear();
     _feeds.clear();
+    _standaloneListingIds.clear();
     notifyListeners();
   }
 

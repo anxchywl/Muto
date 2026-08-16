@@ -112,6 +112,6 @@ async def image_content(
         media_type=mime_type,
         headers={
             "Content-Disposition": "inline",
-            "Cache-Control": "private, max-age=31536000, immutable",
+            "Cache-Control": "private, no-store",
         },
     )

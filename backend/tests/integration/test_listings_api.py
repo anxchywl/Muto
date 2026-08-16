@@ -83,6 +83,16 @@ def create_listing(
     )
 
 
+async def suspend_user(user_id: str) -> None:
+    engine = create_async_engine(os.environ["TEST_DATABASE_URL"])
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE users SET account_status = 'suspended' WHERE id = :user_id"),
+            {"user_id": user_id},
+        )
+    await engine.dispose()
+
+
 @pytest.mark.integration
 def test_authentication_and_identity_resolution() -> None:
     with TestClient(create_app(settings())) as client:
@@ -179,6 +189,23 @@ def test_browse_uses_stable_validated_cursors_and_filters() -> None:
     assert malformed.json()["error"]["code"] == "cursor_invalid"
     assert mismatch.status_code == 409
     assert searched.json()["data"][0]["title"] == "Alpha lamp"
+
+
+@pytest.mark.integration
+def test_suggestions_hide_suspended_sellers() -> None:
+    with TestClient(create_app(settings(subject="seller"))) as seller:
+        listing = create_listing(seller, title="Distinctive telescope").json()["data"]
+    asyncio.run(suspend_user(listing["seller_id"]))
+
+    with TestClient(create_app(settings(subject="buyer"))) as buyer:
+        response = buyer.get(
+            "/api/v1/listings/suggestions",
+            headers=AUTH,
+            params={"prefix": "Distinctive"},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["data"] == []
 
 
 @pytest.mark.integration

@@ -40,6 +40,43 @@ const String _browseKey = 'browse:default';
 
 void main() {
   group('ListingCache feeds', () {
+    test(
+      'evicts least recently used feeds and their unreferenced listings',
+      () {
+        final cache = ListingCache();
+
+        for (var index = 0; index < CacheCapacity.feeds; index++) {
+          cache.absorbPage(
+            'browse:q=$index',
+            Page<Listing>(items: [_listing('listing-$index')]),
+            replace: true,
+          );
+        }
+        cache.peekFeed('browse:q=0');
+        cache.absorbPage(
+          'browse:q=new',
+          Page<Listing>(items: [_listing('listing-new')]),
+          replace: true,
+        );
+
+        expect(cache.peekFeed('browse:q=0'), isNotNull);
+        expect(cache.peekFeed('browse:q=1'), isNull);
+        expect(cache.peek('listing-1'), isNull);
+        expect(cache.listingCount, CacheCapacity.feeds);
+      },
+    );
+
+    test('bounds listings loaded outside feeds', () {
+      final cache = ListingCache();
+
+      for (var index = 0; index <= CacheCapacity.standaloneListings; index++) {
+        cache.absorb(_listing('listing-$index'));
+      }
+
+      expect(cache.peek('listing-0'), isNull);
+      expect(cache.listingCount, CacheCapacity.standaloneListings);
+    });
+
     test('an unloaded feed is unknown, not empty', () {
       final cache = ListingCache();
       expect(cache.peekFeed(_browseKey), isNull);

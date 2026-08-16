@@ -68,6 +68,7 @@ async def favorite_page(
             Favorite.user_id == principal.user_id,
             Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
             Listing.expires_at > func.now(),
+            User.account_status == "active",
         )
         .order_by(desc(Listing.updated_at), desc(Listing.id))
     )

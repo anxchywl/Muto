@@ -138,6 +138,19 @@ def listing_draft(images: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+async def expire_listing(listing_id: str) -> None:
+    engine = create_async_engine(os.environ["TEST_DATABASE_URL"])
+    async with engine.begin() as connection:
+        await connection.execute(
+            text("UPDATE listings SET expires_at = :expires_at WHERE id = :listing_id"),
+            {
+                "expires_at": datetime.now(UTC) - timedelta(seconds=1),
+                "listing_id": listing_id,
+            },
+        )
+    await engine.dispose()
+
+
 @pytest.mark.integration
 def test_image_flow_reencodes_finalizes_redeems_and_controls_access(
     tmp_path: Path,
@@ -187,9 +200,7 @@ def test_image_flow_reencodes_finalizes_redeems_and_controls_access(
     assert detail.json()["data"]["images"] == [reference]
     assert image_list.json()["data"] == [reference]
     assert public_image.status_code == 200
-    assert public_image.headers["Cache-Control"] == (
-        "private, max-age=31536000, immutable"
-    )
+    assert public_image.headers["Cache-Control"] == "private, no-store"
 
 
 @pytest.mark.integration
@@ -319,6 +330,29 @@ def test_unredeemed_image_is_private_and_finalization_requires_ownership(
     assert unauthorized_finalize.status_code == 403
     assert private_image.status_code == 404
     assert forged_listing.status_code == 403
+
+
+@pytest.mark.integration
+def test_expired_listing_image_is_private_to_its_owner(tmp_path: Path) -> None:
+    with TestClient(create_app(settings(tmp_path, subject="seller"))) as seller:
+        _, reference = stage_image(seller, image_bytes())
+        listing = seller.post(
+            "/api/v1/listings",
+            headers={**AUTH, "Idempotency-Key": "listing-create-key-0001"},
+            json=listing_draft([reference]),
+        ).json()["data"]
+
+    asyncio.run(expire_listing(str(listing["id"])))
+
+    image_path = f"/api/v1/images/{reference['id']}/{reference['version']}"
+    with TestClient(create_app(settings(tmp_path, subject="buyer"))) as buyer:
+        denied = buyer.get(image_path, headers=AUTH)
+    with TestClient(create_app(settings(tmp_path, subject="seller"))) as seller:
+        allowed = seller.get(image_path, headers=AUTH)
+
+    assert denied.status_code == 404
+    assert allowed.status_code == 200
+    assert allowed.headers["Cache-Control"] == "private, no-store"
 
 
 @pytest.mark.integration

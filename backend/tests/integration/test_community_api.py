@@ -161,6 +161,24 @@ def test_unavailable_favorites_leave_the_feed_but_keep_toggle_state() -> None:
 
 
 @pytest.mark.integration
+def test_suspended_seller_listing_leaves_favorites_feed() -> None:
+    with TestClient(create_app(settings(subject="seller"))) as seller:
+        listing = publish(seller, "Suspended favorite", "listing-create-key-0001")
+    with TestClient(create_app(settings(subject="buyer"))) as buyer:
+        buyer.put(f"/api/v1/favorites/{listing['id']}", headers=AUTH)
+
+    asyncio.run(suspend_user(str(listing["seller_id"])))
+
+    with TestClient(create_app(settings(subject="buyer"))) as buyer:
+        page = buyer.get("/api/v1/favorites", headers=AUTH)
+        saved = buyer.get("/api/v1/favorites/ids", headers=AUTH)
+
+    assert page.status_code == 200
+    assert page.json()["data"] == []
+    assert saved.json()["data"] == [listing["id"]]
+
+
+@pytest.mark.integration
 def test_seller_profile_and_listings_expose_only_public_marketplace_data() -> None:
     with TestClient(create_app(settings(subject="seller"))) as seller:
         active = publish(seller, "Still active", "listing-create-key-0001")

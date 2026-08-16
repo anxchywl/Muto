@@ -277,9 +277,11 @@ async def listing_suggestions(
     titles = (
         await session.scalars(
             select(Listing.title)
+            .join(User, User.id == Listing.owner_id)
             .where(
                 Listing.status.in_([status.value for status in PUBLIC_STATUSES]),
                 Listing.expires_at > func.now(),
+                User.account_status == "active",
             )
             .order_by(desc(Listing.created_at))
             .limit(2_000)

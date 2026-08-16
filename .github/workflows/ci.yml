@@ -28,12 +28,13 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       flutter: ${{ steps.filter.outputs.flutter }}
       deploy: ${{ steps.filter.outputs.deploy }}
+      ci: ${{ steps.filter.outputs.ci }}
       # a matrix job's `if` can't see the `matrix` context, so which Android
       # variant to build for this event is decided here instead
       android_matrix: ${{ steps.android_matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3
         id: filter
         with:
           filters: |
@@ -48,6 +49,9 @@ jobs:
               - 'deploy/**'
               - 'backend/Dockerfile'
               - 'docker/**'
+            ci:
+              - '.github/workflows/**'
+              - 'scripts/**'
 
       - name: Select android build variant
         id: android_matrix
@@ -63,7 +67,7 @@ jobs:
   backend-quality:
     name: Backend format, analyze and test
     needs: changes
-    if: needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
     runs-on: ubuntu-latest
     env:
       APP_ENV: test
@@ -71,9 +75,9 @@ jobs:
       CURSOR_SECRET: test-cursor-secret-that-is-at-least-32-bytes
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.11.21"
           enable-cache: true
@@ -132,9 +136,9 @@ jobs:
       TEST_S3_SECRET_ACCESS_KEY: muto-test-secret
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           version: "0.11.21"
           enable-cache: true
@@ -175,20 +179,20 @@ jobs:
   quality:
     name: Format, analyze and test
     needs: changes
-    if: needs.changes.outputs.flutter == 'true'
+    if: needs.changes.outputs.flutter == 'true' || needs.changes.outputs.ci == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
       - name: Cache pub packages
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.pub-cache
           key: pub-${{ runner.os }}-${{ hashFiles('**/pubspec.yaml', 'muto_app/pubspec.lock') }}
@@ -240,21 +244,21 @@ jobs:
         include: ${{ fromJSON(needs.changes.outputs.android_matrix) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
 
       - name: Cache pub and gradle
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             ~/.pub-cache
@@ -278,7 +282,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # full history, so a secret committed earlier is still found
           fetch-depth: 0
@@ -286,9 +290,12 @@ jobs:
       - name: Install gitleaks
         env:
           VERSION: "8.30.1"
+          SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         run: |
-          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
-            | tar -xz -C /usr/local/bin gitleaks
+          archive=$(mktemp)
+          curl -sSfL -o "$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
+          echo "$SHA256  $archive" | sha256sum --check
+          tar -xzf "$archive" -C /usr/local/bin gitleaks
 
       - name: Scan repository history
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose
@@ -296,9 +303,11 @@ jobs:
       - name: Install osv-scanner
         env:
           VERSION: "2.5.0"
+          SHA256: "edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c"
         run: |
           curl -sSfL -o /usr/local/bin/osv-scanner \
             "https://github.com/google/osv-scanner/releases/download/v${VERSION}/osv-scanner_linux_amd64"
+          echo "$SHA256  /usr/local/bin/osv-scanner" | sha256sum --check
           chmod +x /usr/local/bin/osv-scanner
 
       # the application lockfile is the only one committed; the library
@@ -311,11 +320,14 @@ jobs:
   deployment-validation:
     name: Deployment configuration
     needs: changes
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy == 'true'
+    if: |
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.deploy == 'true' ||
+      needs.changes.outputs.ci == 'true'
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Check deployment scripts
         run: docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:v0.11.0 deploy/*.sh
@@ -330,10 +342,10 @@ jobs:
           docker compose --env-file /tmp/muto-production.env -f docker/docker-compose.production.yml --profile dedicated config --quiet
           docker compose --env-file /tmp/muto-production.env -f docker/docker-compose.production.yml -f docker/docker-compose.shared-host.yml config --quiet
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: backend/Dockerfile
@@ -342,7 +354,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
 
       - name: Build backup image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deploy/backup.Dockerfile
@@ -357,9 +369,11 @@ jobs:
     if: |
       always() &&
       github.event_name == 'push' && github.ref_name == github.event.repository.default_branch &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy == 'true') &&
       !contains(needs.*.result, 'failure') &&
       !contains(needs.*.result, 'cancelled')
     needs:
+      - changes
       - backend-quality
       - backend-integration
       - quality
@@ -386,7 +400,7 @@ jobs:
 
       - name: Deploy tested revision
         if: steps.configured.outputs.ready == 'true'
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@7eaf76671a0d7eec5d98ee897acda4f968735a17 # v1.2.0
         env:
           DEPLOY_SHA: ${{ github.sha }}
         with:

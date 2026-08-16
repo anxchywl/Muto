@@ -372,8 +372,15 @@ async def read_image(
             raise NotFoundError("image_not_found", "The image was not found.")
         if (
             listing.status == ListingStatus.hidden.value
-            and listing.owner_id != principal.user_id
-        ):
+            or (
+                listing.status
+                in {
+                    ListingStatus.active.value,
+                    ListingStatus.reserved.value,
+                }
+                and listing.expires_at <= datetime.now(UTC)
+            )
+        ) and listing.owner_id != principal.user_id:
             raise NotFoundError("image_not_found", "The image was not found.")
     else:
         raise NotFoundError("image_not_found", "The image was not found.")
