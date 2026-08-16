@@ -35,7 +35,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             [
                 {
                     "id": SELLER_ID,
-                    "display_name": "Marketplace Seller",
+                    "display_name": "Aidar",
                     "is_verified": True,
                     "account_status": "active",
                 },
@@ -60,6 +60,15 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             ]
         )
         .on_conflict_do_nothing(index_elements=[User.id])
+    )
+    await session.execute(
+        update(User).where(User.id == SELLER_ID).values(display_name="Aidar")
+    )
+    await session.execute(
+        update(User).where(User.id == SELLER_TWO_ID).values(display_name="Madi")
+    )
+    await session.execute(
+        update(User).where(User.id == SELLER_THREE_ID).values(display_name="Dias")
     )
     await session.execute(
         insert(UserIdentity)
