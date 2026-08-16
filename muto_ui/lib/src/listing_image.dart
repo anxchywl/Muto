@@ -57,19 +57,44 @@ class _Placeholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLight = Theme.of(context).brightness == Brightness.light;
+    final palette =
+        _placeholderPalettes[(semanticLabel ?? '').codeUnits.fold<int>(
+              0,
+              (sum, code) => sum + code,
+            ) %
+            _placeholderPalettes.length];
     return Semantics(
       label: semanticLabel,
       image: true,
-      child: ColoredBox(
-        color: isLight ? AppColors.fieldBackground : AppColors.surfaceDark,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isLight ? palette : palette.reversed.toList(),
+            stops: const [0, 0.34, 0.67, 1],
+          ),
+        ),
         child: Center(
           child: AppIcon(
             AppIcons.image,
             size: 28,
-            color: isLight ? AppColors.iconDisabled : AppColors.iconSecondary,
+            color: isLight ? AppColors.white : AppColors.iconSecondary,
           ),
         ),
       ),
     );
   }
 }
+
+const _placeholderPalettes = <List<Color>>[
+  [AppColors.primary, AppColors.blue, AppColors.blueLight, AppColors.green],
+  [AppColors.orange, AppColors.yellow, AppColors.red, AppColors.purple],
+  [
+    AppColors.blueLight,
+    AppColors.blue,
+    AppColors.primaryAccentDark,
+    AppColors.purple,
+  ],
+  [AppColors.green, AppColors.blueLight, AppColors.blue, AppColors.primary],
+];

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from uuid import NAMESPACE_URL, uuid5
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,8 @@ from app.infrastructure.db import Database
 from app.infrastructure.db.models import Listing, User, UserIdentity
 
 SELLER_ID = uuid5(NAMESPACE_URL, "https://muto.local/synthetic/seller")
+SELLER_TWO_ID = uuid5(NAMESPACE_URL, "https://muto.local/synthetic/seller-two")
+SELLER_THREE_ID = uuid5(NAMESPACE_URL, "https://muto.local/synthetic/seller-three")
 DEFAULT_USER_ID = uuid5(NAMESPACE_URL, "https://muto.local/synthetic/default-user")
 LISTING_IDS = [
     uuid5(NAMESPACE_URL, f"https://muto.local/synthetic/listing/{index}")
@@ -43,6 +45,18 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
                     "is_verified": True,
                     "account_status": "active",
                 },
+                {
+                    "id": SELLER_TWO_ID,
+                    "display_name": "Madi",
+                    "is_verified": True,
+                    "account_status": "active",
+                },
+                {
+                    "id": SELLER_THREE_ID,
+                    "display_name": "Dias",
+                    "is_verified": True,
+                    "account_status": "active",
+                },
             ]
         )
         .on_conflict_do_nothing(index_elements=[User.id])
@@ -56,6 +70,19 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
         )
         .on_conflict_do_nothing(constraint="uq_user_identities_provider_subject")
     )
+    for seller_id, subject in (
+        (SELLER_TWO_ID, "sample-seller-two"),
+        (SELLER_THREE_ID, "sample-seller-three"),
+    ):
+        await session.execute(
+            insert(UserIdentity)
+            .values(
+                user_id=seller_id,
+                provider_issuer="muto-synthetic-seed",
+                provider_subject=subject,
+            )
+            .on_conflict_do_nothing(constraint="uq_user_identities_provider_subject")
+        )
     await session.execute(
         insert(UserIdentity)
         .values(
@@ -70,7 +97,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             "id": LISTING_IDS[0],
             "owner_id": SELLER_ID,
             "title": "Linear algebra textbook",
-            "description": "Synthetic local development listing",
+            "description": "Clean copy with highlighted chapters, useful for exam revision.",
             "category": "textbooks",
             "kind": "sale",
             "condition": "good",
@@ -82,7 +109,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             "id": LISTING_IDS[1],
             "owner_id": SELLER_ID,
             "title": "Desk organizer",
-            "description": "Synthetic local development listing",
+            "description": "Keeps pens, cables, and a calculator tidy on a small study desk.",
             "category": "dorm",
             "kind": "giveaway",
             "condition": "like_new",
@@ -94,7 +121,7 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             "id": LISTING_IDS[2],
             "owner_id": SELLER_ID,
             "title": "Badminton racket",
-            "description": "Synthetic local development listing",
+            "description": "Lightly used racket with a fresh grip. Looking for a board game.",
             "category": "sports",
             "kind": "exchange",
             "condition": "worn",
@@ -165,6 +192,23 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
             "wanted_items": None,
         },
     ]
+    await session.execute(
+        update(Listing)
+        .where(Listing.id.in_(LISTING_IDS))
+        .values(
+            owner_id=SELLER_ID,
+        )
+    )
+    await session.execute(
+        update(Listing)
+        .where(Listing.id == LISTING_IDS[1])
+        .values(owner_id=SELLER_TWO_ID)
+    )
+    await session.execute(
+        update(Listing)
+        .where(Listing.id == LISTING_IDS[2])
+        .values(owner_id=SELLER_THREE_ID)
+    )
     result = await session.execute(
         insert(Listing)
         .values(listings)
