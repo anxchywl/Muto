@@ -30,7 +30,6 @@ void main() {
   });
 
   test('the development session token is not a credential', () {
-    // it exists so the sample repositories have a non-empty string to accept
     expect(developmentSessionToken, isNotEmpty);
     expect(developmentSessionToken.length, lessThan(32));
   });
@@ -48,7 +47,12 @@ void main() {
   testWidgets('five Browse taps switch between isolated dev roles', (
     tester,
   ) async {
-    await tester.pumpWidget(const HostApp(allowDevelopmentAccess: true));
+    await tester.pumpWidget(
+      const HostApp(
+        allowDevelopmentAccess: true,
+        backend: MutoBackend.sample,
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Favorites'), findsOneWidget);

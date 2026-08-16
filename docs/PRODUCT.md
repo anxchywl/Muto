@@ -148,10 +148,9 @@ Every one of these is a decision, not a gap.
 
 ## What is simulated
 
-Sample mode runs entirely against bundled data. Remote mode implements the
-same feature behavior through the backend and is selected explicitly by the
-host; it never falls back to sample records after a network or configuration
-failure.
+The standalone host uses the backend by default. In-memory repositories are
+retained for isolated Flutter tests only; the host never falls back to bundled
+records after a network or configuration failure.
 
 Simulated, and behaving as the real thing is specified to:
 
@@ -165,6 +164,5 @@ Not implemented for production:
 - provisioned production object storage and credentials; the private
   S3-compatible adapter and lifecycle policy are implemented
 
-Sample-mode publications live in memory and disappear when the app restarts.
-Remote-mode publications persist in PostgreSQL. Unfinished drafts and recent
-searches remain device-local in both modes.
+Remote publications persist in PostgreSQL. Unfinished drafts and recent
+searches remain device-local.
