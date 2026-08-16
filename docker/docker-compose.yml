@@ -17,7 +17,7 @@ services:
 
   backend:
     build:
-      context: .
+      context: ..
       dockerfile: backend/Dockerfile
     environment:
       APP_ENV: ${APP_ENV:-development}

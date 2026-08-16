@@ -5,7 +5,7 @@ repo_dir=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
 env_file=${ENV_FILE:-$repo_dir/.env.production}
 deploy_ref=${DEPLOY_REF:-$(git -C "$repo_dir" rev-parse --verify HEAD)}
 image="muto-backend:$deploy_ref"
-compose="docker compose --env-file $env_file -f $repo_dir/docker-compose.production.yml"
+compose="docker compose --env-file $env_file -f $repo_dir/docker/docker-compose.production.yml"
 
 # a host already running another project's caddy on 80/443 fronts muto
 # through that proxy instead of starting muto's own
@@ -18,7 +18,7 @@ if [ -z "$target" ]; then
   fi
 fi
 if [ "$target" = "shared-host" ]; then
-  compose="$compose -f $repo_dir/docker-compose.shared-host.yml"
+  compose="$compose -f $repo_dir/docker/docker-compose.shared-host.yml"
 else
   compose="$compose --profile dedicated"
 fi

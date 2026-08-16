@@ -111,7 +111,7 @@ services:
 
   backup:
     build:
-      context: .
+      context: ..
       dockerfile: deploy/backup.Dockerfile
     restart: unless-stopped
     environment:
@@ -140,7 +140,7 @@ services:
   caddy:
     image: caddy:2.10-alpine
     # only started on a dedicated host; a shared host fronts muto through its
-    # own existing reverse proxy instead (see docker-compose.shared-host.yml)
+    # own existing reverse proxy instead (see docker/docker-compose.shared-host.yml)
     profiles: [dedicated]
     restart: unless-stopped
     environment:
@@ -155,7 +155,7 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -175,7 +175,7 @@ services:
       MUTO_API_DOMAIN: ${MUTO_API_DOMAIN:?MUTO_API_DOMAIN is required}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
     volumes:
-      - ./deploy/monitor.sh:/monitor.sh:ro
+      - ../deploy/monitor.sh:/monitor.sh:ro
     command: ["sh", "/monitor.sh"]
     # checks the public domain over HTTPS either way, so a dedicated host
     # only needs its own caddy started first; a shared host overrides this

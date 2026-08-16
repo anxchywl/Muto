@@ -224,7 +224,7 @@ GitHub.
 
 ## Deployment
 
-`docker-compose.production.yml` runs PostgreSQL, the API, private S3-backed
+`docker/docker-compose.production.yml` runs PostgreSQL, the API, private S3-backed
 maintenance, daily database backups, Caddy TLS routing and a readiness monitor.
 Copy either `deploy/temporary.env.example` for the current debug-only remote
 environment or `deploy/production.env.example` after real host authentication
@@ -243,7 +243,7 @@ Required external inputs are:
 Configure and verify the image bucket from the backup image:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.production.yml \
+docker compose --env-file .env.production -f docker/docker-compose.production.yml \
   run --rm -e IMAGE_LIFECYCLE_FILE=/usr/local/share/muto/image-lifecycle.json \
   backup /usr/local/bin/configure-storage.sh
 ```

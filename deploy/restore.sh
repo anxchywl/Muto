@@ -3,7 +3,7 @@ set -eu
 
 dump=${1:?usage: deploy/restore.sh path-to-dump}
 repo_dir=$(CDPATH='' cd -- "$(dirname "$0")/.." && pwd)
-compose="docker compose --env-file $repo_dir/.env.production -f $repo_dir/docker-compose.production.yml"
+compose="docker compose --env-file $repo_dir/.env.production -f $repo_dir/docker/docker-compose.production.yml"
 
 [ -f "$dump" ] && [ -s "$dump" ] || {
   echo "backup does not exist or is empty" >&2
