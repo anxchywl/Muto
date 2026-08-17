@@ -4,11 +4,15 @@ Muto is a small marketplace for verified Nazarbayev University students. People
 list things they no longer need, and interested students contact the owner
 outside the app.
 
+The current development build is [v0.1.7-dev](https://github.com/anxchywl/Muto/releases/tag/v0.1.7-dev).
+
 The marketplace is an embeddable Flutter feature. This repository also contains
 a standalone host for development.
 
-> Sample mode is the default. Remote mode uses the backend in this repository.
-> Production authentication, hosting, and signing credentials are not included.
+> Remote mode is the default. The current development deployment uses
+> `https://muto.anxchywl.dev` with temporary development authentication and
+> synthetic marketplace records. Production authentication and signing are not
+> included.
 
 ## Features
 
@@ -66,10 +70,11 @@ docker compose -f docker/docker-compose.yml up --build
 curl http://127.0.0.1:8000/health/ready
 ```
 
-To run the standalone Flutter host against that service, change
-`MUTO_BACKEND=remote` in `.env`, keep the synthetic local token from the
-example, and run the same `flutter run` command. Remote mode never falls back
-to sample data if configuration or a request fails.
+The example configuration already selects remote mode. Populate the local
+PostgreSQL database with the idempotent seed command in
+[docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md), then run the same
+`flutter run` command. The app never falls back to bundled records if
+configuration or a request fails.
 
 Run the complete local quality gate with `./scripts/verify.sh`. It covers
 formatting, linting, type analysis, security checks, tests, and coverage.
@@ -82,7 +87,7 @@ Flutter uses five compile-time values:
 | Variable | Default | Meaning |
 |---|---|---|
 | `ENABLE_DEV_ACCESS` | `true` | Lets the standalone host open the marketplace with a placeholder session |
-| `MUTO_BACKEND` | `sample` | Selects `sample` or `remote` dependencies explicitly |
+| `MUTO_BACKEND` | `remote` | Selects `remote` dependencies; `sample` remains available for tests |
 | `MUTO_API_BASE_URL` | local API | Required by the host in remote mode |
 | `MUTO_ACCESS_TOKEN` | synthetic local token | Development student token, passed unchanged to the session repository |
 | `MUTO_ADMIN_ACCESS_TOKEN` | synthetic local token | Distinct development operator token |
@@ -97,20 +102,21 @@ unavailable in release builds and neither token is an authorization claim by
 itself: the backend resolves the account and role.
 
 The same example file documents backend runtime settings. Local authentication
-accepts only the explicitly configured synthetic development token and the
-backend refuses to start with that adapter in production. The future host token
-format is not yet defined, so production authentication deliberately rejects
-every token.
+accepts only the explicitly configured synthetic development tokens. The live
+development deployment uses the same adapter temporarily; it must be replaced
+with the host authentication adapter before production use.
 
 ## Status and limitations
 
-- Sample mode runs entirely in memory; remote mode uses the FastAPI service and
-  PostgreSQL.
-- Production authentication and host integration are not finished.
-- Production deployment needs a hostname, object storage, credentials, and
-  GitHub environment configuration.
-- Android artifacts are unsigned. A tagged release builds an APK and attaches
-  it to a GitHub Release; it is not an app-store release.
+- The standalone host uses the FastAPI service and PostgreSQL by default.
+- In-memory sample repositories remain only as test fixtures; they are not the
+  host's normal data source.
+- The live development backend currently contains synthetic listings and uses
+  temporary development authentication.
+- The current downloadable artifact is the prerelease
+  [v0.1.7-dev APK](https://github.com/anxchywl/Muto/releases/tag/v0.1.7-dev).
+- Production host authentication, real signing, and app-store distribution are
+  not finished.
 
 ## Documentation
 

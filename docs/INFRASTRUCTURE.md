@@ -32,8 +32,8 @@ there is nothing to publish or link by hand. Dropping
 `--dart-define-from-file` is fine — the defaults are the same as the example
 file — but keeping it is the habit that matters once more defines exist.
 
-The app opens on sample data, in the device's language if that is English,
-Kazakh or Russian, and follows the system theme.
+The app opens against the configured backend, in the device's language if that
+is English, Kazakh or Russian, and follows the system theme.
 
 The backend runs separately:
 
@@ -57,7 +57,7 @@ docker compose -f docker/docker-compose.yml exec backend .venv/bin/python -m app
 The command is blocked in production and contains no contact details,
 credentials, photographs or real student records.
 
-To use the service from Flutter, set `MUTO_BACKEND=remote`,
+The example Flutter configuration already selects remote mode. Set
 `MUTO_API_BASE_URL=http://127.0.0.1:8000`, `MUTO_ACCESS_TOKEN` to the same
 synthetic value as `DEVELOPMENT_AUTH_TOKEN`, and `MUTO_ADMIN_ACCESS_TOKEN` to
 the same value as `DEVELOPMENT_ADMIN_AUTH_TOKEN`, then restart `flutter run`. An

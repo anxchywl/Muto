@@ -359,10 +359,9 @@ class _Body extends StatelessWidget {
                   child: child,
                 ),
               ),
-              layoutBuilder: (current, previous) => Stack(
-                alignment: Alignment.topCenter,
-                children: [...previous, ?current],
-              ),
+              layoutBuilder: (current, previous) =>
+                  current ??
+                  (previous.isEmpty ? const SizedBox() : previous.last),
               child: SingleChildScrollView(
                 key: ValueKey<int>(step),
                 // the bottom inset goes with the chrome: with one field left

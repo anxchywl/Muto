@@ -11,12 +11,15 @@ import 'dev/dev_gate.dart';
 /// This is development scaffolding. In a real host the session comes from that
 /// host's own authentication, not from here.
 class HostApp extends StatefulWidget {
-  const HostApp({super.key, this.allowDevelopmentAccess});
+  const HostApp({super.key, this.allowDevelopmentAccess, this.backend});
 
   /// Overrides the gate. Only a test sets this — the suite runs in debug mode,
   /// so the closed path is otherwise unreachable from a test binary.
   @visibleForTesting
   final bool? allowDevelopmentAccess;
+
+  @visibleForTesting
+  final MutoBackend? backend;
 
   @override
   State<HostApp> createState() => _HostAppState();
@@ -29,14 +32,19 @@ class _HostAppState extends State<HostApp> {
 
   Future<void> _switchDevelopmentRole() async {
     if (!isDevelopmentAccessAllowed) return;
+    final adminToken = _config.backend == MutoBackend.sample
+        ? 'sample-admin-session'
+        : configuredAdminAccessToken;
+    final userToken = _config.backend == MutoBackend.sample
+        ? 'sample-session'
+        : configuredUserAccessToken;
     setState(() {
-      _accessToken = _accessToken == configuredAdminAccessToken
-          ? configuredUserAccessToken
-          : configuredAdminAccessToken;
+      _accessToken = _accessToken == adminToken ? userToken : adminToken;
     });
   }
 
   MutoConfig _createConfig() {
+    if (widget.backend == MutoBackend.sample) return const MutoConfig.sample();
     if (!usesRemoteBackend) return const MutoConfig.sample();
     if (configuredApiBaseUrl.isEmpty) {
       throw StateError('MUTO_API_BASE_URL is required in remote mode');

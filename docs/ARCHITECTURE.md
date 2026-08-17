@@ -44,7 +44,7 @@ fails the build if the split is crossed.
 |---|---|---|
 | `domain/` | Entities, value objects, the status machine, validation, repository interfaces | Import Flutter, http or storage |
 | `application/` | Controllers, cache, account isolation | Depend on a concrete repository |
-| `data/` | Repository implementations, sample data, local storage | — |
+| `data/` | Repository implementations, test doubles, local storage | — |
 | `presentation/` | Screens, widgets, formatting | Import `data/` |
 
 Wiring happens once, in `MutoScope`. It is the only place that knows both a

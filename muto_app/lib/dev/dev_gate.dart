@@ -21,16 +21,15 @@ bool developmentAccessAllowed({
   required bool requested,
 }) => isDebugMode && requested;
 
-/// A placeholder session for the standalone host.
+/// A local development session for the standalone host.
 ///
-/// It is not a credential and it authorises nothing: the sample repositories
-/// accept any non-empty string. There is deliberately nothing here that could
-/// be mistaken for a secret or leak into a commit.
-const String developmentSessionToken = 'sample-session';
+/// The backend development adapter resolves this token to the configured
+/// development account. It is deliberately not a production credential.
+const String developmentSessionToken = 'muto-local-only';
 
 const String _configuredBackend = String.fromEnvironment(
   'MUTO_BACKEND',
-  defaultValue: 'sample',
+  defaultValue: 'remote',
 );
 
 const String configuredApiBaseUrl = String.fromEnvironment('MUTO_API_BASE_URL');
@@ -42,7 +41,7 @@ const String configuredUserAccessToken = String.fromEnvironment(
 
 const String configuredAdminAccessToken = String.fromEnvironment(
   'MUTO_ADMIN_ACCESS_TOKEN',
-  defaultValue: 'sample-admin-session',
+  defaultValue: 'muto-admin-local-only',
 );
 
 bool get usesRemoteBackend {
