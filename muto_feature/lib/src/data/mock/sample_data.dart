@@ -91,9 +91,7 @@ final class SampleData {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       expiresAt: json['expires_at'] is String
           ? DateTime.parse(json['expires_at'] as String)
-          : DateTime.parse(
-              json['created_at'] as String,
-            ).add(const Duration(days: 30)),
+          : null,
       price: _money(json['price']),
       wantedItems: json['wanted_items'] as String?,
       contact: _contact(json['contact']),

@@ -72,6 +72,8 @@ jobs:
           --dart-define=ENABLE_DEV_ACCESS=true
           --dart-define=ALLOW_STANDALONE_DEV_ACCESS=true
           --dart-define=MUTO_API_BASE_URL=https://muto.anxchywl.dev
+          --dart-define=MUTO_ACCESS_TOKEN=${{ secrets.MUTO_DEV_USER_TOKEN }}
+          --dart-define=MUTO_ADMIN_ACCESS_TOKEN=${{ secrets.MUTO_DEV_ADMIN_TOKEN }}
 
       - name: Rename artifact to the tag
         run: cp muto_app/build/app/outputs/flutter-apk/app-release.apk muto-${{ github.ref_name }}.apk
