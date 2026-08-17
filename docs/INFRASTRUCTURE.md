@@ -129,8 +129,9 @@ flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
 ```
 
 The local release build is unsigned and is only a compilation check. A tagged
-release uses the separate release workflow to attach the APK to a GitHub
-Release; it is not an app-store release.
+development release explicitly enables the standalone placeholder session with
+`ALLOW_STANDALONE_DEV_ACCESS=true`; it is not an app-store release. The
+separate release workflow attaches its APK to a GitHub Release.
 
 ## Working on the feature
 

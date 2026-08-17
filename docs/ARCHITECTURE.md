@@ -255,11 +255,11 @@ crafted title display as something other than what it contains.
 
 ### Development access
 
-The standalone host opens the marketplace with a placeholder session, gated on
-`kDebugMode && ENABLE_DEV_ACCESS`, both halves required. A release build cannot
-switch it on however the define is set: the host shows a refusal screen
-instead, a unit test asserts the logic, and CI builds a release artifact with
-the define off.
+The standalone host opens the marketplace with a placeholder session. Debug
+builds require `ENABLE_DEV_ACCESS`; a release build additionally requires the
+explicit `ALLOW_STANDALONE_DEV_ACCESS` development-build define. Ordinary
+release builds therefore remain closed, while the tagged development workflow
+can produce a usable standalone APK.
 
 Five taps on Browse switch between separate user and operator development
 sessions; five more switch back. The callback exists only behind the debug

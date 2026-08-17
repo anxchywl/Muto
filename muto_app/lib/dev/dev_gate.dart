@@ -4,22 +4,26 @@ const bool _devAccessRequested = bool.fromEnvironment(
   'ENABLE_DEV_ACCESS',
   defaultValue: true,
 );
+const bool _standaloneReleaseAccess = bool.fromEnvironment(
+  'ALLOW_STANDALONE_DEV_ACCESS',
+  defaultValue: false,
+);
 
 /// Whether this build may open the marketplace without a real host session.
 ///
-/// Both halves must hold. A release build cannot turn this on however the
-/// define is set, which is what stops a shipped binary from carrying a
-/// development door.
+/// Release access requires an explicit development-build define.
 bool get isDevelopmentAccessAllowed => developmentAccessAllowed(
   isDebugMode: kDebugMode,
   requested: _devAccessRequested,
+  allowReleaseAccess: _standaloneReleaseAccess,
 );
 
 @visibleForTesting
 bool developmentAccessAllowed({
   required bool isDebugMode,
   required bool requested,
-}) => isDebugMode && requested;
+  bool allowReleaseAccess = false,
+}) => requested && (isDebugMode || allowReleaseAccess);
 
 /// A local development session for the standalone host.
 ///

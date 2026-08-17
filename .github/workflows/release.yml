@@ -67,7 +67,11 @@ jobs:
 
       - name: Build release artifact
         working-directory: muto_app
-        run: flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
+        run: >-
+          flutter build apk --release
+          --dart-define=ENABLE_DEV_ACCESS=true
+          --dart-define=ALLOW_STANDALONE_DEV_ACCESS=true
+          --dart-define=MUTO_API_BASE_URL=https://muto.anxchywl.dev
 
       - name: Rename artifact to the tag
         run: cp muto_app/build/app/outputs/flutter-apk/app-release.apk muto-${{ github.ref_name }}.apk
