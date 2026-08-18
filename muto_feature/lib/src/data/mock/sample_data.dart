@@ -124,6 +124,7 @@ final class SampleData {
     if (raw is! Map) return null;
     return SellerContact(
       telegramUsername: raw['telegram_username'] as String?,
+      whatsappPhone: raw['whatsapp_phone'] as String?,
       email: raw['email'] as String?,
       phone: raw['phone'] as String?,
     );

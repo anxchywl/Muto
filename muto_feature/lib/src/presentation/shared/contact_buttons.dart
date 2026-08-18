@@ -48,12 +48,14 @@ class ContactChannelRow extends StatelessWidget {
 String _labelFor(ContactMedium medium, MutoLocalizations strings) =>
     switch (medium) {
       ContactMedium.telegram => strings.contactTelegram,
+      ContactMedium.whatsapp => strings.contactWhatsapp,
       ContactMedium.email => strings.contactEmail,
       ContactMedium.phone => strings.contactPhone,
     };
 
 AppIconData _iconFor(ContactMedium medium) => switch (medium) {
   ContactMedium.telegram => AppIcons.telegram,
+  ContactMedium.whatsapp => AppIcons.whatsapp,
   ContactMedium.email => AppIcons.email,
   ContactMedium.phone => AppIcons.phone,
 };
@@ -66,6 +68,7 @@ AppIconData _iconFor(ContactMedium medium) => switch (medium) {
 /// provider it does not know.
 Color? _brandColorFor(ContactMedium medium) => switch (medium) {
   ContactMedium.telegram => AppColors.socialTelegram,
+  ContactMedium.whatsapp => AppColors.socialWhatsapp,
   ContactMedium.phone => AppColors.success,
   ContactMedium.email => null,
 };

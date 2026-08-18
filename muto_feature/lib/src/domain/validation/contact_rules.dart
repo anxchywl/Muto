@@ -38,6 +38,7 @@ abstract final class ContactRules {
   static SellerContact sanitize(SellerContact contact) {
     return SellerContact(
       telegramUsername: normalizeTelegramUsername(contact.telegramUsername),
+      whatsappPhone: normalizePhone(contact.whatsappPhone),
       email: normalizeEmail(contact.email),
       phone: normalizePhone(contact.phone),
     );

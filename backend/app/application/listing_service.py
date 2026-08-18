@@ -56,6 +56,7 @@ def serialize_listing(
     if include_contact:
         values = {
             "telegram_username": seller.telegram_username,
+            "whatsapp_phone": seller.whatsapp_phone,
             "email": seller.email,
             "phone": seller.phone,
         }

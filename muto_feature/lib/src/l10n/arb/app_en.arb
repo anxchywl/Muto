@@ -158,6 +158,7 @@
     }
   },
   "contactTelegram": "Telegram",
+  "contactWhatsapp": "WhatsApp",
   "contactEmail": "Email",
   "contactPhone": "Phone",
   "actionCopy": "Copy",

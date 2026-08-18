@@ -1,7 +1,7 @@
 import '../../domain/entities/seller_contact.dart';
 import '../../domain/validation/contact_rules.dart';
 
-enum ContactMedium { telegram, email, phone }
+enum ContactMedium { telegram, whatsapp, email, phone }
 
 /// A way to reach the seller, with the destination already built.
 ///
@@ -47,6 +47,17 @@ List<ContactChannel> contactChannelsOf(SellerContact? contact) {
         medium: ContactMedium.email,
         display: email,
         uri: Uri(scheme: 'mailto', path: email),
+      ),
+    );
+  }
+
+  final whatsapp = sanitized.whatsappPhone;
+  if (whatsapp != null) {
+    channels.add(
+      ContactChannel(
+        medium: ContactMedium.whatsapp,
+        display: whatsapp,
+        uri: Uri.https('wa.me', '/${whatsapp.substring(1)}'),
       ),
     );
   }

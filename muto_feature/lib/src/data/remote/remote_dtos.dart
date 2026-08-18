@@ -90,6 +90,7 @@ ImageRef imageRefFromWire(Map<String, Object?> value) =>
 SellerContact sellerContactFromWire(Map<String, Object?> value) =>
     SellerContact(
       telegramUsername: _nullableString(value, 'telegram_username'),
+      whatsappPhone: _nullableString(value, 'whatsapp_phone'),
       email: _nullableString(value, 'email'),
       phone: _nullableString(value, 'phone'),
     );
