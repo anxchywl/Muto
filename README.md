@@ -4,7 +4,7 @@ Muto is a small marketplace for verified Nazarbayev University students. People
 list things they no longer need, and interested students contact the owner
 outside the app.
 
-The current development build is [v0.1.7-dev](https://github.com/anxchywl/Muto/releases/tag/v0.1.7-dev).
+The latest development build is [v0.1.7-dev](https://github.com/anxchywl/Muto/releases/tag/v0.1.7-dev).
 
 The marketplace is an embeddable Flutter feature. This repository also contains
 a standalone host for development.
@@ -76,7 +76,7 @@ PostgreSQL database with the idempotent seed command in
 `flutter run` command. The app never falls back to bundled records if
 configuration or a request fails.
 
-Run the complete local quality gate with `./scripts/verify.sh`. It covers
+Run the complete local quality gate with `./scripts/verify.sh`. The script covers
 formatting, linting, type analysis, security checks, tests, and coverage.
 More detail is in [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md).
 

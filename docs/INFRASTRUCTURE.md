@@ -198,10 +198,9 @@ that release makes the object immediately eligible for cleanup.
 
 ## Continuous integration
 
-The main CI workflow, [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml),
-runs on pushes to `main` and on pull requests. It runs the same commands as
-above, so a green `verify.sh` locally means a green `quality` job. The separate
-release and live-backend workflows are described below. CI reads the repository
+The CI workflow, [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml), runs
+on pushes to `main` and on pull requests. It runs the same commands as above, so
+a green `verify.sh` locally means a green `quality` job. It reads the repository
 and nothing more, cancels superseded runs on a branch, and caches the Flutter
 SDK, the pub cache and Gradle.
 
