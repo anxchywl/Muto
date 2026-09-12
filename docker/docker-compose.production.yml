@@ -18,10 +18,14 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  backend:
+  muto-api:
     image: ${BACKEND_IMAGE:-muto-backend:local}
+    # named explicitly: this service shares a network with several other
+    # compose projects, and a bare `backend` service name would collide
+    # with theirs in the shared DNS namespace
+    container_name: muto-api
     restart: unless-stopped
-    environment: &backend_environment
+    environment: &api_environment
       APP_ENV: ${APP_ENV:?APP_ENV is required}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       CURSOR_SECRET: ${CURSOR_SECRET:?CURSOR_SECRET is required}
@@ -93,13 +97,13 @@ services:
   maintenance:
     image: ${BACKEND_IMAGE:-muto-backend:local}
     restart: unless-stopped
-    environment: *backend_environment
+    environment: *api_environment
     command:
       - /bin/sh
       - -c
       - while true; do .venv/bin/python -m app.commands.cleanup_images && .venv/bin/python -m app.commands.reconcile_storage && .venv/bin/python -m app.commands.cleanup_records; sleep 3600; done
     depends_on:
-      backend:
+      muto-api:
         condition: service_healthy
     read_only: true
     tmpfs:
@@ -159,7 +163,7 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
-      backend:
+      muto-api:
         condition: service_healthy
     cap_drop:
       - ALL

@@ -23,7 +23,7 @@ else
   compose="$compose --profile dedicated"
 fi
 
-previous_image=$($compose ps -q backend | xargs -r docker inspect --format '{{.Config.Image}}')
+previous_image=$($compose ps -q muto-api | xargs -r docker inspect --format '{{.Config.Image}}')
 
 DEPLOYMENT_TARGET=$target ENV_FILE=$env_file "$repo_dir/deploy/preflight.sh"
 docker build --pull --tag "$image" --file "$repo_dir/backend/Dockerfile" "$repo_dir"
@@ -32,7 +32,7 @@ rollback() {
   status=$?
   if [ "$status" -ne 0 ] && [ -n "$previous_image" ]; then
     echo "deployment failed; restoring previous backend image" >&2
-    BACKEND_IMAGE=$previous_image $compose up -d --no-deps backend
+    BACKEND_IMAGE=$previous_image $compose up -d --no-deps muto-api
   fi
   exit "$status"
 }
@@ -40,7 +40,7 @@ trap rollback EXIT INT TERM
 
 BACKEND_IMAGE=$image $compose up -d postgres
 BACKEND_IMAGE=$image $compose run --rm --no-deps backup /usr/local/bin/backup.sh
-BACKEND_IMAGE=$image $compose run --rm --no-deps backend \
+BACKEND_IMAGE=$image $compose run --rm --no-deps muto-api \
   .venv/bin/alembic -c alembic.ini upgrade head
 BACKEND_IMAGE=$image $compose up -d --remove-orphans
 

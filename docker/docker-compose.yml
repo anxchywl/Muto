@@ -15,7 +15,7 @@ services:
       timeout: 3s
       retries: 20
 
-  backend:
+  muto-api:
     build:
       context: ..
       dockerfile: backend/Dockerfile
