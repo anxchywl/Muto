@@ -17,6 +17,10 @@ services:
       retries: 20
     security_opt:
       - no-new-privileges:true
+    # peak 66M; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 1g
+    pids_limit: 512
 
   muto-api:
     image: ${BACKEND_IMAGE:-muto-backend:local}
@@ -93,6 +97,10 @@ services:
     # list instead of silently replacing it and cutting off postgres access
     networks:
       - default
+    # peak 109M; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 512m
+    pids_limit: 512
 
   maintenance:
     image: ${BACKEND_IMAGE:-muto-backend:local}
@@ -112,12 +120,39 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # peak 122M; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 384m
+    pids_limit: 256
 
   backup:
     build:
       context: ..
       dockerfile: deploy/backup.Dockerfile
     restart: unless-stopped
+    # The image's CMD schedules backup.sh with crond. crond does not pass the
+    # container's environment to the jobs it runs, so every nightly run saw no
+    # POSTGRES_HOST and died on line 11 -- silently, because crond's output went
+    # nowhere and the container stayed "up". muto therefore had no working
+    # automated backup between 2026-08-18 and 2026-09-12.
+    #
+    # Run the loop as PID 1 instead, which inherits the full environment above.
+    # This is how the sibling wished project's backup service already works, and
+    # it removes the whole class of cron-environment bugs rather than patching
+    # around it. Trade-off: the run drifts with container start time instead of
+    # firing at a fixed 02:17.
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          if /usr/local/bin/backup.sh >> /backups/backup.log 2>&1; then
+            echo "$(date -Iseconds) backup ok" >> /backups/backup.log
+          else
+            echo "$(date -Iseconds) BACKUP FAILED rc=$?" >> /backups/backup.log
+          fi
+          sleep "${BACKUP_INTERVAL_SECONDS:-86400}"
+        done
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
@@ -140,6 +175,10 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # peak 122M; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 256m
+    pids_limit: 256
 
   caddy:
     image: caddy:2.10-alpine
@@ -171,6 +210,10 @@ services:
       - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
+    # not started on a shared host; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 256m
+    pids_limit: 256
 
   monitor:
     image: curlimages/curl:8.17.0
@@ -192,6 +235,10 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    # peak 14M; the host has 3.7Gi and five compose projects, so an unbounded
+    # container here is taken out of somebody else's budget
+    mem_limit: 128m
+    pids_limit: 128
 
 volumes:
   postgres_data:
