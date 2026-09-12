@@ -167,7 +167,11 @@ services:
       BACKUP_S3_SECRET_ACCESS_KEY: ${BACKUP_S3_SECRET_ACCESS_KEY:-}
       BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
     volumes:
-      - database_backups:/backups
+      # A host bind, not the named volume this used to use. `docker compose
+      # down -v` destroys named volumes, so the backups lived in exactly the
+      # thing they are supposed to survive -- one stray -v would have taken the
+      # database and its only copy together.
+      - ${BACKUP_LOCAL_PATH:-/var/backups/muto}:/backups
     depends_on:
       postgres:
         condition: service_healthy
@@ -242,6 +246,5 @@ services:
 
 volumes:
   postgres_data:
-  database_backups:
   caddy_data:
   caddy_config:
