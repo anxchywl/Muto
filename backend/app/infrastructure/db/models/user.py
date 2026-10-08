@@ -39,6 +39,7 @@ class User(UuidPrimaryKeyMixin, TimestampMixin, Base):
         server_default="active",
     )
     telegram_username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    whatsapp_phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
 

@@ -8,6 +8,10 @@ document owns endpoint and wire-shape decisions.
 
 The service and Flutter remote adapters currently implement:
 
+All endpoints below use the `/api/v1` prefix except the two health checks.
+Health checks are unauthenticated; every other endpoint requires the bearer
+token or operator role shown in the table.
+
 | Endpoint | Authentication | Purpose |
 |---|---|---|
 | `GET /health/live` | No | Process liveness |

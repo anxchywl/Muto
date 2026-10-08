@@ -5,15 +5,28 @@ import 'package:muto_feature/muto_feature.dart';
 
 void main() {
   group('development access', () {
-    test('a release build cannot enable it however the flag is set', () {
+    test(
+      'a release build stays closed without explicit development access',
+      () {
+        expect(
+          developmentAccessAllowed(isDebugMode: false, requested: true),
+          isFalse,
+        );
+        expect(
+          developmentAccessAllowed(isDebugMode: false, requested: false),
+          isFalse,
+        );
+      },
+    );
+
+    test('an explicitly marked development release can enable access', () {
       expect(
-        developmentAccessAllowed(isDebugMode: false, requested: true),
-        isFalse,
-        reason: 'a shipped binary must not carry a development door',
-      );
-      expect(
-        developmentAccessAllowed(isDebugMode: false, requested: false),
-        isFalse,
+        developmentAccessAllowed(
+          isDebugMode: false,
+          requested: true,
+          allowReleaseAccess: true,
+        ),
+        isTrue,
       );
     });
 

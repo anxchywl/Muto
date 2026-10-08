@@ -91,9 +91,7 @@ final class SampleData {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       expiresAt: json['expires_at'] is String
           ? DateTime.parse(json['expires_at'] as String)
-          : DateTime.parse(
-              json['created_at'] as String,
-            ).add(const Duration(days: 30)),
+          : null,
       price: _money(json['price']),
       wantedItems: json['wanted_items'] as String?,
       contact: _contact(json['contact']),
@@ -126,6 +124,7 @@ final class SampleData {
     if (raw is! Map) return null;
     return SellerContact(
       telegramUsername: raw['telegram_username'] as String?,
+      whatsappPhone: raw['whatsapp_phone'] as String?,
       email: raw['email'] as String?,
       phone: raw['phone'] as String?,
     );

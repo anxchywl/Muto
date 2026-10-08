@@ -38,24 +38,33 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
                     "display_name": "Aidar",
                     "is_verified": True,
                     "account_status": "active",
+                    "telegram_username": "sample_aidar",
+                    "whatsapp_phone": "+77000000101",
+                    "email": "sample.aidar@example.edu",
                 },
                 {
                     "id": default_user_id,
                     "display_name": "Aruzhan",
                     "is_verified": True,
                     "account_status": "active",
+                    "telegram_username": "sample_aruzhan",
+                    "email": "sample.aruzhan@example.edu",
                 },
                 {
                     "id": SELLER_TWO_ID,
                     "display_name": "Madi",
                     "is_verified": True,
                     "account_status": "active",
+                    "whatsapp_phone": "+77000000102",
                 },
                 {
                     "id": SELLER_THREE_ID,
                     "display_name": "Dias",
                     "is_verified": True,
                     "account_status": "active",
+                    "telegram_username": "sample_dias",
+                    "whatsapp_phone": "+77000000103",
+                    "email": "sample.dias@example.edu",
                 },
             ]
         )

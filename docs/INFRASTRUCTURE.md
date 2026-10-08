@@ -129,8 +129,9 @@ flutter build apk --release --dart-define=ENABLE_DEV_ACCESS=false
 ```
 
 The local release build is unsigned and is only a compilation check. A tagged
-release uses the separate release workflow to attach the APK to a GitHub
-Release; it is not an app-store release.
+development release explicitly enables the standalone placeholder session with
+`ALLOW_STANDALONE_DEV_ACCESS=true`; it is not an app-store release. The
+separate release workflow attaches its APK to a GitHub Release.
 
 ## Working on the feature
 
@@ -197,9 +198,9 @@ that release makes the object immediately eligible for cleanup.
 
 ## Continuous integration
 
-One workflow, [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml), on
-pushes to `main` and on pull requests. It runs the same commands as above, so a
-green `verify.sh` locally means a green `quality` job. It reads the repository
+The CI workflow, [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml), runs
+on pushes to `main` and on pull requests. It runs the same commands as above, so
+a green `verify.sh` locally means a green `quality` job. It reads the repository
 and nothing more, cancels superseded runs on a branch, and caches the Flutter
 SDK, the pub cache and Gradle.
 
