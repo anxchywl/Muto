@@ -48,6 +48,8 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
                     "is_verified": True,
                     "account_status": "active",
                     "telegram_username": "sample_aruzhan",
+                    # a multi-row insert needs every key in every row
+                    "whatsapp_phone": None,
                     "email": "sample.aruzhan@example.edu",
                 },
                 {
@@ -55,7 +57,9 @@ async def seed_synthetic_data(session: AsyncSession) -> int:
                     "display_name": "Madi",
                     "is_verified": True,
                     "account_status": "active",
+                    "telegram_username": None,
                     "whatsapp_phone": "+77000000102",
+                    "email": None,
                 },
                 {
                     "id": SELLER_THREE_ID,
